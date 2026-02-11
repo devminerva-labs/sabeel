@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArabicText } from '@/components/ArabicText'
 import { getAyahDetail, type AyahDetail } from '@/lib/api/tafsir.api'
 
@@ -15,10 +15,76 @@ interface AyahDetailSheetProps {
   onClose: () => void
 }
 
+function audioUrl(surah: number, ayah: number) {
+  const s = String(surah).padStart(3, '0')
+  const a = String(ayah).padStart(3, '0')
+  return `https://verses.quran.com/Mishary_Alafasy/mp3/${s}${a}.mp3`
+}
+
+function useAyahAudio(surah: number | null, ayah: number | null) {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Stop and reset audio whenever the ayah changes
+  useEffect(() => {
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.src = ''
+    }
+    audioRef.current = null
+    setIsPlaying(false)
+    setIsLoading(false)
+  }, [surah, ayah])
+
+  function toggle() {
+    if (surah === null || ayah === null) return
+
+    if (!audioRef.current) {
+      const audio = new Audio(audioUrl(surah, ayah))
+      audioRef.current = audio
+
+      audio.addEventListener('canplay', () => setIsLoading(false))
+      audio.addEventListener('ended', () => setIsPlaying(false))
+      audio.addEventListener('pause', () => setIsPlaying(false))
+      audio.addEventListener('play', () => setIsPlaying(true))
+      audio.addEventListener('error', () => {
+        setIsLoading(false)
+        setIsPlaying(false)
+      })
+    }
+
+    const audio = audioRef.current
+    if (audio.paused) {
+      setIsLoading(audio.readyState < 3) // HAVE_FUTURE_DATA
+      audio.play().catch(() => {
+        setIsLoading(false)
+        setIsPlaying(false)
+      })
+    } else {
+      audio.pause()
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause()
+    }
+  }, [])
+
+  return { isPlaying, isLoading, toggle }
+}
+
 export function AyahDetailSheet({ ayah, surahName, onClose }: AyahDetailSheetProps) {
   const [detail, setDetail] = useState<AyahDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+  const { isPlaying, isLoading: audioLoading, toggle } = useAyahAudio(
+    ayah?.surah ?? null,
+    ayah?.ayah ?? null,
+  )
 
   useEffect(() => {
     if (!ayah) {
@@ -60,13 +126,30 @@ export function AyahDetailSheet({ ayah, surahName, onClose }: AyahDetailSheetPro
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              {surahName ?? `Surah ${ayah.surah}`}
-            </p>
-            <p className="text-sm font-semibold text-foreground">
-              Ayah {ayah.ayah}
-            </p>
+          <div className="flex items-center gap-3">
+            {/* Audio play/pause button */}
+            <button
+              onClick={toggle}
+              aria-label={isPlaying ? 'Pause recitation' : 'Play recitation'}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-40"
+              disabled={audioLoading}
+            >
+              {audioLoading ? (
+                <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin block" />
+              ) : isPlaying ? (
+                <PauseIcon />
+              ) : (
+                <PlayIcon />
+              )}
+            </button>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                {surahName ?? `Surah ${ayah.surah}`}
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                Ayah {ayah.ayah}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -84,7 +167,7 @@ export function AyahDetailSheet({ ayah, surahName, onClose }: AyahDetailSheetPro
             {ayah.arabic} ﴿{ayah.ayah}﴾
           </ArabicText>
 
-          {/* Transliteration */}
+          {/* Tafsir loading skeleton */}
           {loading && (
             <div className="space-y-2 animate-pulse">
               <div className="h-3 rounded bg-muted w-3/4" />
@@ -149,5 +232,22 @@ export function AyahDetailSheet({ ayah, surahName, onClose }: AyahDetailSheetPro
         </div>
       </div>
     </>
+  )
+}
+
+function PlayIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M3 2.5l10 5.5-10 5.5V2.5z" />
+    </svg>
+  )
+}
+
+function PauseIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <rect x="3" y="2" width="4" height="12" rx="1" />
+      <rect x="9" y="2" width="4" height="12" rx="1" />
+    </svg>
   )
 }
