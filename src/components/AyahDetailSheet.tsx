@@ -18,7 +18,7 @@ interface AyahDetailSheetProps {
 function audioUrl(surah: number, ayah: number) {
   const s = String(surah).padStart(3, '0')
   const a = String(ayah).padStart(3, '0')
-  return `https://verses.quran.com/Mishary_Alafasy/mp3/${s}${a}.mp3`
+  return `https://verses.quran.com/Alafasy/mp3/${s}${a}.mp3`
 }
 
 function useAyahAudio(surah: number | null, ayah: number | null) {
