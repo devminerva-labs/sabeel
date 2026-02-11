@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1a472a" />
+    <!-- Apply theme before React hydrates to avoid flash of wrong theme -->
+    <script>
+      ;(function () {
+        var t = localStorage.getItem('sabeel-theme')
+        var dark = t === 'dark' || (t === 'system' || !t) && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (dark) document.documentElement.classList.add('dark')
+      })()
+    </script>
     <meta name="description" content="Track your Quran recitation and Adhkar this Ramadan" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/scheherazade-new.woff2" as="font" type="font/woff2" crossorigin />
