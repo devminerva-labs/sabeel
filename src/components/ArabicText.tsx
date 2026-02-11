@@ -8,7 +8,7 @@ interface ArabicTextProps {
 
 export function ArabicText({ children, className = '', as: Tag = 'span' }: ArabicTextProps) {
   return (
-    <Tag dir="rtl" lang="ar" className={`font-[--font-arabic] ${className}`}>
+    <Tag dir="rtl" lang="ar" className={className}>
       {children}
     </Tag>
   )
