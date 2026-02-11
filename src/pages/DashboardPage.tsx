@@ -115,16 +115,16 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      {/* Leaderboard placeholder */}
-      <div className="rounded-xl border border-dashed border-border p-5 text-center space-y-2">
-        <p className="text-base font-semibold text-foreground">Halqa Leaderboard</p>
+      {/* Halaqah */}
+      <Link
+        to="/app/halaqah"
+        className="block rounded-xl border border-border p-5 space-y-1 hover:bg-muted/30 transition-colors"
+      >
+        <p className="text-base font-semibold text-foreground">Halaqah</p>
         <p className="text-sm text-muted-foreground">
-          Compete with your circle — coming in v1.1.
+          Join your circle and track Quran progress together.
         </p>
-        <p className="text-xs text-muted-foreground italic">
-          Invite your Halqa · Private groups · Anonymous leaderboard
-        </p>
-      </div>
+      </Link>
     </div>
   )
 }

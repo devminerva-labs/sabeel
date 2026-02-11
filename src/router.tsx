@@ -5,6 +5,12 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { AdhkarPage } from '@/pages/AdhkarPage'
 import { LandingPage } from '@/pages/LandingPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
+
+const HalaqahPage = lazy(() =>
+  import('@/pages/HalaqahPage').then((m) => ({ default: m.HalaqahPage })),
+)
 
 // Lazy load heavier pages
 const QuranPage = lazy(() =>
@@ -31,6 +37,14 @@ export const router = createBrowserRouter([
     path: '/',
     element: <LandingPage />,
     errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/auth/callback',
+    element: <AuthCallbackPage />,
   },
   {
     path: '/app',
@@ -79,6 +93,16 @@ export const router = createBrowserRouter([
           <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
             <ErrorBoundary level="feature">
               <SettingsPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
+      },
+      {
+        path: 'halaqah',
+        element: (
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <HalaqahPage />
             </ErrorBoundary>
           </Suspense>
         ),

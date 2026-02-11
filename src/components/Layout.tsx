@@ -6,7 +6,7 @@ const navItems = [
   { to: '/app/quran', label: 'Quran', icon: '📖' },
   { to: '/app/prayer', label: 'Prayer', icon: '🕌' },
   { to: '/app/adhkar', label: 'Adhkar', icon: '📿' },
-  { to: '/app/settings', label: 'Settings', icon: '⚙️' },
+  { to: '/app/halaqah', label: 'Halaqah', icon: '◎' },
 ] as const
 
 export function Layout() {
