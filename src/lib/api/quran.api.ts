@@ -1,62 +1,65 @@
 import { db, type QuranCacheRecord } from '@/lib/db'
 
-const BASE_URL = 'https://api.alquran.cloud/v1'
+const BASE_URL = 'https://api.quran.com/api/v4'
 
 // Bump this when switching API editions or translation sources to invalidate old cache
-const CACHE_SCHEMA_VERSION = 2
+const CACHE_SCHEMA_VERSION = 3
 
-// The quran-uthmani edition prepends Bismillah to verse 1 of every surah except:
-// - Surah 1 (Al-Fatiha): Bismillah IS verse 1 — keep as-is
-// - Surah 9 (At-Tawbah): no Bismillah at all
-const BISMILLAH_TEXT = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
+// Bismillah text as returned by the Quran.com API (from Surah 1:1)
+// Surah 1 (Al-Fatiha): Bismillah IS verse 1 — kept as-is
+// Surah 9 (At-Tawbah): no Bismillah at all
+// All other surahs: inject Bismillah as an unlabeled header before verse 1
+const BISMILLAH_ARABIC = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ'
 
-interface AlQuranAyah {
-  number: number
-  text: string
-  surah: { number: number; name: string; englishName: string }
-  numberInSurah: number
+interface QuranComVerse {
+  verse_key: string // e.g. "2:255"
+  text_uthmani: string
+  translations: Array<{ text: string }>
 }
 
-interface AlQuranResponse {
-  code: number
-  status: string
-  data: { ayahs: AlQuranAyah[] }
+interface QuranComResponse {
+  verses: QuranComVerse[]
+  pagination: { total_pages: number }
+}
+
+function stripHtml(text: string): string {
+  // Remove footnote superscripts and any remaining HTML tags
+  return text.replace(/<sup[^>]*>.*?<\/sup>/g, '').replace(/<[^>]+>/g, '').trim()
 }
 
 export async function fetchJuzFromAPI(juzNumber: number): Promise<QuranCacheRecord['ayahs']> {
-  const [arabicRes, englishRes] = await Promise.all([
-    fetch(`${BASE_URL}/juz/${juzNumber}/quran-uthmani`),
-    fetch(`${BASE_URL}/juz/${juzNumber}/en.sahih`),
-  ])
+  const res = await fetch(
+    `${BASE_URL}/verses/by_juz/${juzNumber}?language=en&translations=20&fields=text_uthmani&per_page=300&page=1`
+  )
 
-  if (!arabicRes.ok || !englishRes.ok) {
+  if (!res.ok) {
     throw new Error(`Failed to fetch Juz ${juzNumber}`)
   }
 
-  const arabicData: AlQuranResponse = await arabicRes.json()
-  const englishData: AlQuranResponse = await englishRes.json()
+  const data: QuranComResponse = await res.json()
+  const result: QuranCacheRecord['ayahs'] = []
+  let currentSurah = 0
 
-  const arabicAyahs = arabicData.data.ayahs
-  const englishAyahs = englishData.data.ayahs
+  for (const v of data.verses) {
+    const [surahStr = '0', ayahStr = '0'] = v.verse_key.split(':')
+    const surah = parseInt(surahStr, 10)
+    const ayah = parseInt(ayahStr, 10)
+    const arabic = v.text_uthmani.trim()
+    const translation = stripHtml(v.translations[0]?.text ?? '')
 
-  return arabicAyahs.flatMap((ar, i) => {
-    const surah = ar.surah.number
-    const ayah = ar.numberInSurah
-    const arabic = ar.text.trim()
-    const translation = englishAyahs[i]?.text ?? ''
-
-    // For non-Fatiha, non-Tawbah surahs, the API prepends Bismillah to verse 1.
-    // Split it out so it can be rendered as an unlabeled basmala header.
-    if (surah !== 1 && surah !== 9 && ayah === 1 && arabic.startsWith(BISMILLAH_TEXT)) {
-      const verseText = arabic.slice(BISMILLAH_TEXT.length).trim()
-      return [
-        { surah, ayah: 1, arabic: BISMILLAH_TEXT, translation: '', isBismillah: true },
-        { surah, ayah: 1, arabic: verseText, translation },
-      ]
+    // When a new surah starts, inject a Bismillah header for all surahs
+    // except Al-Fatiha (where it is verse 1) and At-Tawbah (which has none).
+    if (surah !== currentSurah) {
+      currentSurah = surah
+      if (surah !== 1 && surah !== 9) {
+        result.push({ surah, ayah: 0, arabic: BISMILLAH_ARABIC, translation: '', isBismillah: true })
+      }
     }
 
-    return [{ surah, ayah, arabic, translation }]
-  })
+    result.push({ surah, ayah, arabic, translation })
+  }
+
+  return result
 }
 
 export async function getJuzCached(juzNumber: number): Promise<QuranCacheRecord['ayahs']> {
