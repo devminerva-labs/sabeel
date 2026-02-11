@@ -42,8 +42,9 @@ export interface VoluntaryPrayerRecord {
 
 export interface QuranCacheRecord {
   juzNumber: number // 1-30, used as PK
-  ayahs: Array<{ surah: number; ayah: number; arabic: string; translation: string }>
+  ayahs: Array<{ surah: number; ayah: number; arabic: string; translation: string; isBismillah?: boolean }>
   fetchedAt: string
+  schemaVersion?: number // bump when API source or edition changes to force re-fetch
 }
 
 export interface TafsirCacheRecord {

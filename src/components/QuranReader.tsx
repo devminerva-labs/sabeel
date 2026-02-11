@@ -184,8 +184,10 @@ export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
 
           const surahInfo = SURAH_NAMES[ayah.surah]
 
+          const key = ayah.isBismillah ? `bismillah-${ayah.surah}` : `${ayah.surah}-${ayah.ayah}`
+
           return (
-            <div key={`${ayah.surah}-${ayah.ayah}`}>
+            <div key={key}>
               {showSurahHeader && surahInfo && (
                 <div
                   ref={(el) => { if (el) surahHeaderRefs.current.set(ayah.surah, el) }}
@@ -197,18 +199,26 @@ export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
                   <p className="text-sm text-muted-foreground mt-1">{surahInfo.english}</p>
                 </div>
               )}
-              <button
-                onClick={() => {
-                  setSelectedAyah(ayah)
-                  setSelectedSurahName(surahInfo?.english)
-                }}
-                className="w-full text-right py-2 px-1 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={`Verse ${ayah.ayah} of ${surahInfo?.english ?? `Surah ${ayah.surah}`}. Tap for details.`}
-              >
-                <ArabicText as="p" className="text-2xl leading-[2.8]">
-                  {ayah.arabic} ﴿{ayah.ayah}﴾
-                </ArabicText>
-              </button>
+              {ayah.isBismillah ? (
+                <div className="text-center py-3">
+                  <ArabicText as="p" className="text-2xl text-muted-foreground">
+                    {ayah.arabic}
+                  </ArabicText>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setSelectedAyah(ayah)
+                    setSelectedSurahName(surahInfo?.english)
+                  }}
+                  className="w-full text-right py-2 px-1 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Verse ${ayah.ayah} of ${surahInfo?.english ?? `Surah ${ayah.surah}`}. Tap for details.`}
+                >
+                  <ArabicText as="p" className="text-2xl leading-[2.8]">
+                    {ayah.arabic} ﴿{ayah.ayah}﴾
+                  </ArabicText>
+                </button>
+              )}
             </div>
           )
         })}
