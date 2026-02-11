@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { AdhkarPage } from '@/pages/AdhkarPage'
+import { LandingPage } from '@/pages/LandingPage'
 
 // Lazy load heavier pages
 const QuranPage = lazy(() =>
@@ -28,6 +29,11 @@ function RouteErrorFallback() {
 export const router = createBrowserRouter([
   {
     path: '/',
+    element: <LandingPage />,
+    errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: '/app',
     element: <Layout />,
     errorElement: <RouteErrorFallback />,
     children: [

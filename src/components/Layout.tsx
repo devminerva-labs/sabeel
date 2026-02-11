@@ -2,11 +2,11 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 
 const navItems = [
-  { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/quran', label: 'Quran', icon: '📖' },
-  { to: '/prayer', label: 'Prayer', icon: '🕌' },
-  { to: '/adhkar', label: 'Adhkar', icon: '📿' },
-  { to: '/settings', label: 'Settings', icon: '⚙️' },
+  { to: '/app', label: 'Home', icon: '🏠' },
+  { to: '/app/quran', label: 'Quran', icon: '📖' },
+  { to: '/app/prayer', label: 'Prayer', icon: '🕌' },
+  { to: '/app/adhkar', label: 'Adhkar', icon: '📿' },
+  { to: '/app/settings', label: 'Settings', icon: '⚙️' },
 ] as const
 
 export function Layout() {
@@ -26,7 +26,7 @@ export function Layout() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end={item.to === '/app'}
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center py-2 text-xs transition-colors ${
                   isActive ? 'text-primary font-semibold' : 'text-muted-foreground'

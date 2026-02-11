@@ -93,21 +93,21 @@ export function DashboardPage() {
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link
-          to="/quran"
+          to="/app/quran"
           className="rounded-xl bg-primary/10 p-4 text-center hover:bg-primary/20 transition-colors"
         >
           <p className="text-lg font-semibold text-primary">Quran</p>
           <p className="text-sm text-muted-foreground">Track & read</p>
         </Link>
         <Link
-          to="/prayer"
+          to="/app/prayer"
           className="rounded-xl bg-secondary/10 p-4 text-center hover:bg-secondary/20 transition-colors"
         >
           <p className="text-lg font-semibold text-secondary">Prayer</p>
           <p className="text-sm text-muted-foreground">Track salah</p>
         </Link>
         <Link
-          to="/adhkar"
+          to="/app/adhkar"
           className="rounded-xl bg-primary/10 p-4 text-center hover:bg-primary/20 transition-colors col-span-2"
         >
           <p className="text-lg font-semibold text-primary">Adhkar</p>
