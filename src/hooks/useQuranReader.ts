@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { getJuzCached } from '@/lib/api/quran.api'
 import type { QuranCacheRecord } from '@/lib/db'
 
@@ -20,6 +21,8 @@ function makeSkeleton(juzNumber: number): QuranCacheRecord['ayahs'] {
 }
 
 export function useQuranReader(juzNumber: number) {
+  const queryClient = useQueryClient()
+
   const { data, isLoading, isPlaceholderData, error } = useQuery<QuranCacheRecord['ayahs']>({
     queryKey: ['quran-juz', juzNumber],
     queryFn: () => getJuzCached(juzNumber),
@@ -27,6 +30,18 @@ export function useQuranReader(juzNumber: number) {
     gcTime: 1000 * 60 * 30,
     placeholderData: () => makeSkeleton(juzNumber),
   })
+
+  // Silently prefetch adjacent Juz while the user is reading
+  useEffect(() => {
+    const neighbors = [juzNumber - 1, juzNumber + 1].filter((n) => n >= 1 && n <= 30)
+    for (const n of neighbors) {
+      queryClient.prefetchQuery({
+        queryKey: ['quran-juz', n],
+        queryFn: () => getJuzCached(n),
+        staleTime: Infinity,
+      })
+    }
+  }, [juzNumber, queryClient])
 
   return { ayahs: data ?? [], isLoading: isLoading || isPlaceholderData, error }
 }

@@ -59,6 +59,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: [],
+    // fake-indexeddb/auto must be in setupFiles (not just imported in tests)
+    // for dexie-react-hooks useLiveQuery to work correctly in test environment
+    setupFiles: ['fake-indexeddb/auto'],
   },
 })
