@@ -1,0 +1,18 @@
+[      93ms] [WARNING] Failed to decode downloaded font: http://localhost:5173/fonts/scheherazade-new.woff2 @ http://localhost:5173/tracker:0
+[      93ms] [WARNING] OTS parsing error: invalid sfntVersion: 1008821359 @ http://localhost:5173/tracker:0
+[      93ms] [WARNING] Failed to decode downloaded font: http://localhost:5173/fonts/noto-naskh-arabic-variable.woff2 @ http://localhost:5173/tracker:0
+[      93ms] [WARNING] OTS parsing error: invalid sfntVersion: 1008821359 @ http://localhost:5173/tracker:0
+[     132ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=20ae4a60:4435
+[     183ms] [ERROR] Error handled by React Router default ErrorBoundary: DexieError2 @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=20ae4a60:4072
+[     183ms] [ERROR] Error handled by React Router default ErrorBoundary: DexieError2 @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=20ae4a60:4072
+[     183ms] [ERROR] Error handled by React Router default ErrorBoundary: DexieError2 @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=20ae4a60:4072
+[     184ms] [ERROR] Error handled by React Router default ErrorBoundary: DexieError2 @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=20ae4a60:4072
+[     185ms] [ERROR] %o
+
+%s
+
+%s
+ DexieError2 The above error occurred in the <TrackerContent> component. React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=20ae4a60:7000
+[     185ms] [ERROR] React Router caught the following error during render DexieError2 {componentStack: 
+    at TrackerContent (http://localhost:5173/src/…ry.js?v=20ae4a60:3168:3)
+    at App (<anonymous>)} @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=20ae4a60:4117

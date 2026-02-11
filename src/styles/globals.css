@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand colors — deep Islamic green */
+  --color-primary: #1a472a;
+  --color-primary-foreground: #f0fdf4;
+  --color-secondary: #2d6a4f;
+  --color-secondary-foreground: #f0fdf4;
+  --color-accent: #d4a017;
+  --color-accent-foreground: #1a1a1a;
+
+  /* Semantic */
+  --color-background: #ffffff;
+  --color-foreground: #0f1f13;
+  --color-muted: #f1f5f1;
+  --color-muted-foreground: #6b7c6e;
+  --color-border: #d4ddd6;
+  --color-ring: #1a472a;
+
+  /* Tracker states */
+  --color-status-not-started: #d1d5db;
+  --color-status-in-progress: #fbbf24;
+  --color-status-completed: #22c55e;
+
+  /* Anxiety category (calmer palette) */
+  --color-calm-bg: #eff6ff;
+  --color-calm-text: #1e40af;
+  --color-calm-accent: #60a5fa;
+
+  /* Fonts */
+  --font-arabic: 'Scheherazade New', 'Noto Naskh Arabic', serif;
+  --font-arabic-ui: 'Noto Naskh Arabic', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Spacing */
+  --radius: 0.75rem;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-background: #0d1f12;
+  --color-foreground: #e8f0ea;
+  --color-muted: #1a2f1e;
+  --color-muted-foreground: #8fa893;
+  --color-border: #2d4a33;
+  --color-primary: #4ade80;
+  --color-primary-foreground: #0d1f12;
+
+  --color-status-not-started: #374151;
+  --color-status-in-progress: #f59e0b;
+  --color-status-completed: #4ade80;
+
+  --color-calm-bg: #1e293b;
+  --color-calm-text: #93c5fd;
+  --color-calm-accent: #3b82f6;
+}
+
+/* Arabic font faces */
+@font-face {
+  font-family: 'Scheherazade New';
+  src: url('/fonts/scheherazade-new.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  src: url('/fonts/noto-naskh-arabic-variable.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+/* Base styles */
+body {
+  font-family: var(--font-sans);
+}
+
+/* Arabic text defaults */
+[lang="ar"] {
+  font-family: var(--font-arabic);
+  line-height: 2.2;
+  letter-spacing: 0;
+  unicode-bidi: isolate;
+}
