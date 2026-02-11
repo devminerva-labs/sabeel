@@ -3,13 +3,25 @@ import { ArabicText } from '@/components/ArabicText'
 import { ProgressRing } from '@/components/ProgressRing'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { calculateCatchUp } from '@/lib/catch-up'
 
 export function DashboardPage() {
   const { ramadanYear, dayNumber, season } = useRamadanContext()
+  const { canInstall, install } = usePWAInstall()
 
   return (
     <div className="space-y-6">
+      {/* PWA install prompt */}
+      {canInstall && (
+        <button
+          onClick={install}
+          className="w-full rounded-lg bg-primary/10 border border-primary/20 p-3 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+        >
+          Install Sabeel for quick access
+        </button>
+      )}
+
       <div className="text-center space-y-2">
         <ArabicText as="h1" className="text-3xl">
           بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ

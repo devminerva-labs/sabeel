@@ -1,5 +1,6 @@
 import { QuranGrid } from '@/components/QuranGrid'
 import { ProgressRing } from '@/components/ProgressRing'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
 import { calculateCatchUp } from '@/lib/catch-up'
@@ -62,7 +63,9 @@ function TrackerContent({
         Tap a Juz to cycle: not started → in progress → completed
       </p>
 
-      <QuranGrid ramadanYear={ramadanYear} />
+      <ErrorBoundary level="component" fallback={<p className="text-center text-muted-foreground">Grid failed to load. Try refreshing.</p>}>
+        <QuranGrid ramadanYear={ramadanYear} />
+      </ErrorBoundary>
     </div>
   )
 }

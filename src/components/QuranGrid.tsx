@@ -39,7 +39,7 @@ export function QuranGrid({ ramadanYear }: QuranGridProps) {
           <button
             key={juz.id}
             onClick={() => handleTap(id)}
-            className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors duration-200 active:scale-95 ${STATUS_STYLES[status]}`}
+            className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors duration-200 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none ${STATUS_STYLES[status]}`}
             role="gridcell"
             aria-label={`Juz ${juz.id}, ${STATUS_LABELS[status]}`}
           >
