@@ -1,14 +1,37 @@
 import { Link } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { ArabicText } from '@/components/ArabicText'
 import { ProgressRing } from '@/components/ProgressRing'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
+import { usePrayerLog } from '@/hooks/usePrayerLog'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { calculateCatchUp } from '@/lib/catch-up'
+import { db } from '@/lib/db'
+import type { AdhkarCategory } from '@/types'
+
+const ADHKAR_CATEGORIES: AdhkarCategory[] = ['morning', 'evening', 'after_prayer', 'before_sleep', 'anxiety']
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function useAdhkarTodayCount() {
+  const date = todayISO()
+  const sessions = useLiveQuery(
+    () => db.adhkarSessions.where('[sessionDate+category]').between([date, ''], [date, '\uffff']).toArray(),
+    [date],
+    [],
+  )
+  const completedCount = sessions.filter((s) => s.completed).length
+  return { completedCount, total: ADHKAR_CATEGORIES.length }
+}
 
 export function DashboardPage() {
   const { ramadanYear, dayNumber, season } = useRamadanContext()
   const { canInstall, install } = usePWAInstall()
+  const { prayedCount } = usePrayerLog()
+  const { completedCount: adhkarDone, total: adhkarTotal } = useAdhkarTodayCount()
 
   return (
     <div className="space-y-6">
@@ -44,22 +67,63 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* Today's stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-border bg-background p-4 space-y-1">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Prayers today</p>
+          <p className="text-2xl font-bold text-foreground">
+            {prayedCount}<span className="text-base font-normal text-muted-foreground">/5</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {prayedCount === 5 ? 'All prayed' : prayedCount === 0 ? 'None logged yet' : `${5 - prayedCount} remaining`}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-background p-4 space-y-1">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Adhkar today</p>
+          <p className="text-2xl font-bold text-foreground">
+            {adhkarDone}<span className="text-base font-normal text-muted-foreground">/{adhkarTotal}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {adhkarDone === adhkarTotal ? 'All complete' : adhkarDone === 0 ? 'Not started' : 'In progress'}
+          </p>
+        </div>
+      </div>
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link
-          to="/tracker"
+          to="/quran"
           className="rounded-xl bg-primary/10 p-4 text-center hover:bg-primary/20 transition-colors"
         >
-          <p className="text-lg font-semibold text-primary">Quran Tracker</p>
-          <p className="text-sm text-muted-foreground">Continue reading</p>
+          <p className="text-lg font-semibold text-primary">Quran</p>
+          <p className="text-sm text-muted-foreground">Track & read</p>
+        </Link>
+        <Link
+          to="/prayer"
+          className="rounded-xl bg-secondary/10 p-4 text-center hover:bg-secondary/20 transition-colors"
+        >
+          <p className="text-lg font-semibold text-secondary">Prayer</p>
+          <p className="text-sm text-muted-foreground">Track salah</p>
         </Link>
         <Link
           to="/adhkar"
-          className="rounded-xl bg-secondary/10 p-4 text-center hover:bg-secondary/20 transition-colors"
+          className="rounded-xl bg-primary/10 p-4 text-center hover:bg-primary/20 transition-colors col-span-2"
         >
-          <p className="text-lg font-semibold text-secondary">Adhkar</p>
+          <p className="text-lg font-semibold text-primary">Adhkar</p>
           <p className="text-sm text-muted-foreground">Daily remembrance</p>
         </Link>
+      </div>
+
+      {/* Leaderboard placeholder */}
+      <div className="rounded-xl border border-dashed border-border p-5 text-center space-y-2">
+        <p className="text-base font-semibold text-foreground">Halqa Leaderboard</p>
+        <p className="text-sm text-muted-foreground">
+          Compete with your circle — coming in v1.1.
+        </p>
+        <p className="text-xs text-muted-foreground italic">
+          Invite your Halqa · Private groups · Anonymous leaderboard
+        </p>
       </div>
     </div>
   )

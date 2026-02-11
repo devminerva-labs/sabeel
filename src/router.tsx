@@ -3,10 +3,15 @@ import { createBrowserRouter } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DashboardPage } from '@/pages/DashboardPage'
-import { TrackerPage } from '@/pages/TrackerPage'
 import { AdhkarPage } from '@/pages/AdhkarPage'
 
-// Lazy load Settings (rarely visited)
+// Lazy load heavier pages
+const QuranPage = lazy(() =>
+  import('@/pages/QuranPage').then((m) => ({ default: m.QuranPage })),
+)
+const PrayerPage = lazy(() =>
+  import('@/pages/PrayerPage').then((m) => ({ default: m.PrayerPage })),
+)
 const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
@@ -35,11 +40,23 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'tracker',
+        path: 'quran',
         element: (
-          <ErrorBoundary level="feature">
-            <TrackerPage />
-          </ErrorBoundary>
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <QuranPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
+      },
+      {
+        path: 'prayer',
+        element: (
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <PrayerPage />
+            </ErrorBoundary>
+          </Suspense>
         ),
       },
       {

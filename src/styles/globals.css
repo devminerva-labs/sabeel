@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* Brand colors — deep Islamic green */
@@ -38,21 +39,27 @@
 
 /* Dark mode overrides */
 .dark {
-  --color-background: #0d1f12;
-  --color-foreground: #e8f0ea;
-  --color-muted: #1a2f1e;
-  --color-muted-foreground: #8fa893;
-  --color-border: #2d4a33;
-  --color-primary: #4ade80;
-  --color-primary-foreground: #0d1f12;
+  --color-background: #111111;
+  --color-foreground: #f0f0f0;
+  --color-muted: #1e1e1e;
+  --color-muted-foreground: #8a8a8a;
+  --color-border: #2a2a2a;
+  --color-primary: #6ee7a0;
+  --color-primary-foreground: #111111;
+  --color-secondary: #4caf7d;
+  --color-secondary-foreground: #111111;
+  --color-accent: #e8b94f;
+  --color-accent-foreground: #111111;
 
-  --color-status-not-started: #374151;
-  --color-status-in-progress: #f59e0b;
-  --color-status-completed: #4ade80;
+  --color-status-not-started: #333333;
+  --color-status-in-progress: #d97706;
+  --color-status-completed: #22c55e;
 
-  --color-calm-bg: #1e293b;
+  --color-calm-bg: #1a1f2e;
   --color-calm-text: #93c5fd;
   --color-calm-accent: #3b82f6;
+
+  --color-ring: #6ee7a0;
 }
 
 /* Arabic font faces */

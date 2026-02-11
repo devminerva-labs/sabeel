@@ -32,9 +32,9 @@ export function DhikrCard({ dhikr, count, onIncrement, isAnxiety = false }: Dhik
         </ArabicText>
 
         {/* Counter */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-muted-foreground truncate">{dhikr.transliteration}</p>
+            <p className="text-sm text-muted-foreground">{dhikr.transliteration}</p>
           </div>
           <TasbihCounter
             count={count}

@@ -3,7 +3,8 @@ import { OfflineIndicator } from '@/components/OfflineIndicator'
 
 const navItems = [
   { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/tracker', label: 'Tracker', icon: '📖' },
+  { to: '/quran', label: 'Quran', icon: '📖' },
+  { to: '/prayer', label: 'Prayer', icon: '🕌' },
   { to: '/adhkar', label: 'Adhkar', icon: '📿' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ] as const
