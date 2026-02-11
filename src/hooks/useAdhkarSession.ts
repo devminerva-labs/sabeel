@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import type { AdhkarCategory, AdhkarCounts } from '@/types'
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  return new Date().toLocaleDateString('sv-SE')
 }
 
 export function useAdhkarSession(category: AdhkarCategory) {

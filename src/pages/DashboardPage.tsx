@@ -13,7 +13,7 @@ import type { AdhkarCategory } from '@/types'
 const ADHKAR_CATEGORIES: AdhkarCategory[] = ['morning', 'evening', 'after_prayer', 'before_sleep', 'anxiety']
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date().toLocaleDateString('sv-SE')
 }
 
 function useAdhkarTodayCount() {

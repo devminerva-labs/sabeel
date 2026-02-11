@@ -4,7 +4,8 @@ import { db } from '@/lib/db'
 import type { PrayerName, PrayerStatus } from '@/types'
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  // sv-SE locale produces YYYY-MM-DD in local time (avoids UTC date-shift for UTC+ users)
+  return new Date().toLocaleDateString('sv-SE')
 }
 
 export function usePrayerLog() {

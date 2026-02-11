@@ -148,7 +148,7 @@ function QuranGridView({
       {view === 'juz' ? (
         <>
           <p className="text-xs text-muted-foreground text-center">
-            Tap to cycle status · Double-tap to read
+            Tap to cycle status · Hold to read
           </p>
           <ErrorBoundary level="component" fallback={<p className="text-center text-muted-foreground">Grid failed to load.</p>}>
             <QuranGridWithReader ramadanYear={ramadanYear} onSelectJuz={onSelectJuz} />
@@ -171,6 +171,8 @@ function QuranGridWithReader({
   const { getStatus, cycleStatus } = useQuranProgress(ramadanYear)
   const queryClient = useQueryClient()
   const prefetchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didLongPress = useRef(false)
 
   const handleTap = useCallback(
     (id: JuzId) => {
@@ -197,6 +199,21 @@ function QuranGridWithReader({
     if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current)
   }, [])
 
+  const startLongPress = useCallback(
+    (juzId: number) => {
+      didLongPress.current = false
+      longPressTimeout.current = setTimeout(() => {
+        didLongPress.current = true
+        onSelectJuz(juzId)
+      }, 500)
+    },
+    [onSelectJuz],
+  )
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimeout.current) clearTimeout(longPressTimeout.current)
+  }, [])
+
   return (
     <div className="grid grid-cols-5 gap-2" role="grid" aria-label="Quran Juz tracker with reader">
       {JUZ_DATA.map((juz) => {
@@ -211,15 +228,15 @@ function QuranGridWithReader({
         return (
           <button
             key={juz.id}
-            onClick={() => handleTap(id)}
-            onDoubleClick={() => onSelectJuz(juz.id)}
-            onMouseEnter={() => handlePrefetch(juz.id)}
-            onMouseLeave={handlePrefetchCancel}
+            onClick={() => { if (!didLongPress.current) handleTap(id) }}
+            onPointerDown={() => { startLongPress(juz.id); handlePrefetch(juz.id) }}
+            onPointerUp={cancelLongPress}
+            onPointerLeave={() => { cancelLongPress(); handlePrefetchCancel() }}
             onFocus={() => handlePrefetch(juz.id)}
             onBlur={handlePrefetchCancel}
-            className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors duration-200 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none ${statusStyles[status]}`}
+            className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors duration-200 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none select-none ${statusStyles[status]}`}
             role="gridcell"
-            aria-label={`Juz ${juz.id}, ${status}. Double-tap to read.`}
+            aria-label={`Juz ${juz.id}, ${status}. Hold to read.`}
           >
             <span className="text-base font-bold">{juz.id}</span>
             <span className="text-[10px] leading-tight opacity-70 truncate max-w-full px-1">
