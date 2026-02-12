@@ -61,6 +61,21 @@ function StoryView({ story, onBack }: { story: ProphetStory; onBack: () => void 
         </div>
       </div>
 
+      {/* Surah references */}
+      {story.surahs && story.surahs.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mentioned in the Quran</p>
+          <div className="flex flex-wrap gap-2">
+            {story.surahs.map((surah) => (
+              <div key={surah.number} className="rounded-lg bg-muted/60 border border-border px-3 py-1.5 space-y-0.5">
+                <p className="text-xs font-semibold text-foreground">{surah.name} ({surah.number})</p>
+                <p className="text-xs text-muted-foreground">{surah.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sections */}
       <div className="space-y-6">
         {story.sections.map((section, i) => (
