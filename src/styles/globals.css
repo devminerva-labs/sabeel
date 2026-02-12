@@ -29,7 +29,7 @@
   --color-calm-accent: #60a5fa;
 
   /* Fonts */
-  --font-arabic: 'Scheherazade New', 'Noto Naskh Arabic', serif;
+  --font-arabic: 'Amiri Quran', 'Scheherazade New', 'Noto Naskh Arabic', serif;
   --font-arabic-ui: 'Noto Naskh Arabic', serif;
   --font-sans: 'Inter', system-ui, sans-serif;
 
@@ -63,6 +63,13 @@
 }
 
 /* Arabic font faces */
+@font-face {
+  font-family: 'Amiri Quran';
+  src: url('/fonts/amiri-quran.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
 @font-face {
   font-family: 'Scheherazade New';
   src: url('/fonts/scheherazade-new.woff2') format('woff2');
