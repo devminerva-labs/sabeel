@@ -11,6 +11,9 @@ import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 const HalaqahPage = lazy(() =>
   import('@/pages/HalaqahPage').then((m) => ({ default: m.HalaqahPage })),
 )
+const ProphetStoriesPage = lazy(() =>
+  import('@/pages/ProphetStoriesPage').then((m) => ({ default: m.ProphetStoriesPage })),
+)
 
 // Lazy load heavier pages
 const QuranPage = lazy(() =>
@@ -93,6 +96,16 @@ export const router = createBrowserRouter([
           <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
             <ErrorBoundary level="feature">
               <SettingsPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
+      },
+      {
+        path: 'prophets',
+        element: (
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <ProphetStoriesPage />
             </ErrorBoundary>
           </Suspense>
         ),

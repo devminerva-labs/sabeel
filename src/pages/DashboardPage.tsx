@@ -10,7 +10,7 @@ import { calculateCatchUp } from '@/lib/catch-up'
 import { db } from '@/lib/db'
 import type { AdhkarCategory } from '@/types'
 
-const ADHKAR_CATEGORIES: AdhkarCategory[] = ['morning', 'evening', 'after_prayer', 'before_sleep', 'anxiety']
+const ADHKAR_CATEGORIES: AdhkarCategory[] = ['morning', 'evening', 'after_prayer', 'before_sleep', 'eating', 'home', 'quran_dua', 'anxiety']
 
 function todayISO() {
   return new Date().toLocaleDateString('sv-SE')
@@ -115,16 +115,23 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      {/* Halaqah */}
-      <Link
-        to="/app/halaqah"
-        className="block rounded-xl border border-border p-5 space-y-1 hover:bg-muted/30 transition-colors"
-      >
-        <p className="text-base font-semibold text-foreground">Halaqah</p>
-        <p className="text-sm text-muted-foreground">
-          Join your circle and track Quran progress together.
-        </p>
-      </Link>
+      {/* Prophet Stories + Halaqah */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          to="/app/prophets"
+          className="rounded-xl border border-border p-4 space-y-1 hover:bg-muted/30 transition-colors"
+        >
+          <p className="text-base font-semibold text-foreground">Stories</p>
+          <p className="text-sm text-muted-foreground">Stories of the Prophets</p>
+        </Link>
+        <Link
+          to="/app/halaqah"
+          className="rounded-xl border border-border p-4 space-y-1 hover:bg-muted/30 transition-colors"
+        >
+          <p className="text-base font-semibold text-foreground">Halaqah</p>
+          <p className="text-sm text-muted-foreground">Your study circle</p>
+        </Link>
+      </div>
     </div>
   )
 }
