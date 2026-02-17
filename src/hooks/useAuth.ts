@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
-import { signInWithEmail, signUpWithEmail, signInWithMagicLink, signOut as apiSignOut, ensureProfile } from '@/lib/api/auth.api'
+import { signInWithEmail, signUpWithEmail, signInWithMagicLink, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, ensureProfile } from '@/lib/api/auth.api'
 import { syncLocalProgress } from '@/lib/api/quran-progress.api'
 
 interface AuthState {
@@ -54,10 +54,15 @@ export function useAuth() {
     return error
   }
 
+  async function signInWithGoogle() {
+    const { error } = await apiSignInWithGoogle()
+    return error
+  }
+
   async function signOut() {
     await apiSignOut()
     setState({ user: null, session: null, isLoading: false })
   }
 
-  return { ...state, signIn, signUp, sendMagicLink, signOut }
+  return { ...state, signIn, signUp, sendMagicLink, signInWithGoogle, signOut }
 }

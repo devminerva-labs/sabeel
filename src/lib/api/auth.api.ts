@@ -21,6 +21,14 @@ export async function signInWithMagicLink(email: string) {
   return supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT_URL } })
 }
 
+export async function signInWithGoogle() {
+  if (!supabase) return { data: null, error: new Error('Supabase not configured') }
+  return supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: REDIRECT_URL },
+  })
+}
+
 export async function signOut() {
   if (!supabase) return { error: null }
   return supabase.auth.signOut()
