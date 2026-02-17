@@ -9,7 +9,11 @@ export async function signInWithEmail(email: string, password: string) {
 
 export async function signUpWithEmail(email: string, password: string) {
   if (!supabase) return { data: null, error: new Error('Supabase not configured') }
-  return supabase.auth.signUp({ email, password })
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: REDIRECT_URL },
+  })
 }
 
 export async function signInWithMagicLink(email: string) {
