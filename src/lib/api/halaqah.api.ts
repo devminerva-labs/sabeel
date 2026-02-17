@@ -66,22 +66,18 @@ export async function joinHalaqah(
 
   if (hErr || !halaqah) return { halaqah: null, error: 'Invite code not found' }
 
-  // Check user isn't already a member
-  const { data: existing } = await supabase
-    .from('halaqah_members')
-    .select('id')
-    .eq('halaqah_id', halaqah.id)
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (existing) return { halaqah, error: 'You are already in this Halaqah' }
-
+  // Insert directly — let the DB unique constraint handle duplicates
   const { error: mErr } = await supabase
     .from('halaqah_members')
     .insert({ halaqah_id: halaqah.id, user_id: userId, nickname })
 
   if (mErr) {
-    if (mErr.message.includes('unique')) return { halaqah: null, error: 'That nickname is already taken in this Halaqah' }
+    if (mErr.message.includes('halaqah_id') && mErr.message.includes('user_id')) {
+      return { halaqah, error: 'You are already in this Halaqah' }
+    }
+    if (mErr.message.includes('nickname')) {
+      return { halaqah: null, error: 'That nickname is already taken in this Halaqah' }
+    }
     return { halaqah: null, error: mErr.message }
   }
 
