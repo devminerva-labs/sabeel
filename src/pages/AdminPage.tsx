@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { getUserStats, type UserStat } from '@/lib/api/admin.api'
+
+const ADMIN_ID = '41dc3097-39b0-482f-a087-62c9a6bdbc5d'
 
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return 'Never'
@@ -14,17 +17,34 @@ function timeAgo(dateStr: string | null): string {
 }
 
 export function AdminPage() {
+  const { user, isLoading: authLoading } = useAuth()
   const [users, setUsers] = useState<UserStat[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const isAdmin = user?.id === ADMIN_ID
+
   useEffect(() => {
+    if (authLoading) return
+    if (!isAdmin) {
+      setLoading(false)
+      return
+    }
     getUserStats().then(({ data, error }) => {
       if (error) setError(error)
       else setUsers(data ?? [])
       setLoading(false)
     })
-  }, [])
+  }, [authLoading, isAdmin])
+
+  if (!authLoading && !isAdmin) {
+    return (
+      <div className="space-y-4 text-center py-12">
+        <p className="text-xl font-semibold">Access Denied</p>
+        <p className="text-sm text-muted-foreground">This page is restricted to admins.</p>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

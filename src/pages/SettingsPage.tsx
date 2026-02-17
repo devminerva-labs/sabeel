@@ -33,8 +33,8 @@ export function SettingsPage() {
         </p>
       </div>
 
-      {/* Admin link — visible to logged-in users */}
-      {user && (
+      {/* Admin link — only visible to admin */}
+      {user?.id === '41dc3097-39b0-482f-a087-62c9a6bdbc5d' && (
         <div className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Admin</h2>
           <Link
