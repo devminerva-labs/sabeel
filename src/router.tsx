@@ -8,21 +8,44 @@ import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 
-const HalaqahPage = lazy(() =>
+// Auto-reload on stale chunk errors (happens after deploys)
+function lazyWithReload<T extends { default: React.ComponentType }>(
+  factory: () => Promise<T>,
+) {
+  return lazy(() =>
+    factory().catch((err) => {
+      if (
+        err?.message?.includes('Failed to fetch dynamically imported module') ||
+        err?.message?.includes('Loading chunk') ||
+        err?.message?.includes('Importing a module script failed')
+      ) {
+        // Only reload once to avoid infinite loop
+        const key = 'sabeel_chunk_reload'
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1')
+          window.location.reload()
+        }
+      }
+      throw err
+    }),
+  )
+}
+
+const HalaqahPage = lazyWithReload(() =>
   import('@/pages/HalaqahPage').then((m) => ({ default: m.HalaqahPage })),
 )
-const ProphetStoriesPage = lazy(() =>
+const ProphetStoriesPage = lazyWithReload(() =>
   import('@/pages/ProphetStoriesPage').then((m) => ({ default: m.ProphetStoriesPage })),
 )
 
 // Lazy load heavier pages
-const QuranPage = lazy(() =>
+const QuranPage = lazyWithReload(() =>
   import('@/pages/QuranPage').then((m) => ({ default: m.QuranPage })),
 )
-const PrayerPage = lazy(() =>
+const PrayerPage = lazyWithReload(() =>
   import('@/pages/PrayerPage').then((m) => ({ default: m.PrayerPage })),
 )
-const SettingsPage = lazy(() =>
+const SettingsPage = lazyWithReload(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
 
