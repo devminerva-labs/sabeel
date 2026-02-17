@@ -262,9 +262,8 @@ function NotLoggedIn() {
 
 export function HalaqahPage() {
   const { user, isLoading: authLoading } = useAuth()
-  const { halaqah, isLoadingHalaqah } = useHalaqah(user?.id ?? null)
 
-  if (authLoading || isLoadingHalaqah) {
+  if (authLoading) {
     return (
       <div className="space-y-4 animate-pulse pt-4">
         <div className="h-6 rounded bg-muted w-1/3" />
@@ -275,6 +274,22 @@ export function HalaqahPage() {
   }
 
   if (!user) return <NotLoggedIn />
+  return <HalaqahContent userId={user.id} />
+}
+
+function HalaqahContent({ userId }: { userId: string }) {
+  const { halaqah, isLoadingHalaqah } = useHalaqah(userId)
+
+  if (isLoadingHalaqah) {
+    return (
+      <div className="space-y-4 animate-pulse pt-4">
+        <div className="h-6 rounded bg-muted w-1/3" />
+        <div className="h-10 rounded bg-muted" />
+        <div className="h-10 rounded bg-muted w-2/3" />
+      </div>
+    )
+  }
+
   if (!halaqah) return <CreateOrJoin />
   return <Leaderboard />
 }

@@ -61,7 +61,7 @@ export async function joinHalaqah(
   const { data: halaqah, error: hErr } = await supabase
     .from('halaqahs')
     .select('*')
-    .eq('invite_code', inviteCode.trim().toLowerCase())
+    .eq('invite_code', inviteCode.trim())
     .single()
 
   if (hErr || !halaqah) return { halaqah: null, error: 'Invite code not found' }
