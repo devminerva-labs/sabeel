@@ -48,6 +48,9 @@ const PrayerPage = lazyWithReload(() =>
 const SettingsPage = lazyWithReload(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
+const AdminPage = lazyWithReload(() =>
+  import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })),
+)
 
 function RouteErrorFallback() {
   return (
@@ -139,6 +142,16 @@ export const router = createBrowserRouter([
           <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
             <ErrorBoundary level="feature">
               <HalaqahPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
+      },
+      {
+        path: 'admin',
+        element: (
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <AdminPage />
             </ErrorBoundary>
           </Suspense>
         ),

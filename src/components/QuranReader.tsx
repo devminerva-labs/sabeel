@@ -235,14 +235,79 @@ interface SurahGroup {
 interface QuranReaderProps {
   juzNumber: number
   targetSurah?: number
+  /** Called once when the reader mounts with content — signals user started reading this juz */
+  onStartReading?: () => void
+  /** Called when the user scrolls to the end of the juz — signals juz is fully read */
+  onFinishReading?: () => void
+  /** Called when the user scrolls past a surah — signals that surah was read */
+  onSurahRead?: (surahNumber: number) => void
 }
 
-export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
+export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishReading, onSurahRead }: QuranReaderProps) {
   const { ayahs, isLoading, error } = useQuranReader(juzNumber)
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null)
   const [selectedSurahName, setSelectedSurahName] = useState<string | undefined>(undefined)
   const surahHeaderRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const surahEndRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const { playingSurah, currentAyah, isLoading: audioLoading, toggle: toggleSurahAudio } = useSurahAudio()
+  const startCalledRef = useRef(false)
+  const finishCalledRef = useRef(false)
+  const endMarkerRef = useRef<HTMLDivElement>(null)
+  const surahsReadRef = useRef<Set<number>>(new Set())
+
+  // Auto-track: mark juz as "in_progress" when content loads
+  useEffect(() => {
+    if (!isLoading && ayahs.length > 0 && !startCalledRef.current) {
+      startCalledRef.current = true
+      onStartReading?.()
+    }
+  }, [isLoading, ayahs.length, onStartReading])
+
+  // Auto-track: mark juz as "completed" when user scrolls to bottom
+  useEffect(() => {
+    const marker = endMarkerRef.current
+    if (!marker || isLoading || ayahs.length === 0) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && !finishCalledRef.current) {
+          finishCalledRef.current = true
+          onFinishReading?.()
+        }
+      },
+      { threshold: 0.5 },
+    )
+    observer.observe(marker)
+    return () => observer.disconnect()
+  }, [isLoading, ayahs.length, onFinishReading])
+
+  // Auto-track: mark each surah as read when user scrolls past its end
+  useEffect(() => {
+    if (isLoading || ayahs.length === 0 || !onSurahRead) return
+
+    const refs = surahEndRefs.current
+    if (refs.size === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const surahNum = Number(entry.target.getAttribute('data-surah'))
+            if (surahNum && !surahsReadRef.current.has(surahNum)) {
+              surahsReadRef.current.add(surahNum)
+              onSurahRead(surahNum)
+            }
+          }
+        }
+      },
+      { threshold: 0.5 },
+    )
+
+    for (const el of refs.values()) {
+      observer.observe(el)
+    }
+    return () => observer.disconnect()
+  }, [isLoading, ayahs.length, onSurahRead])
 
   // Group ayahs by surah
   const surahGroups = useMemo(() => {
@@ -383,8 +448,19 @@ export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
                 )
               })}
             </p>
+            {/* Surah end marker for auto-tracking */}
+            <div
+              ref={(el) => { if (el) surahEndRefs.current.set(group.surah, el) }}
+              data-surah={group.surah}
+              className="h-1"
+              aria-hidden="true"
+            />
           </div>
         ))}
+        {/* End-of-juz marker for auto-completion tracking */}
+        <div ref={endMarkerRef} className="text-center py-6 text-sm text-muted-foreground">
+          End of Juz {juzNumber}
+        </div>
       </div>
 
       <AyahDetailSheet

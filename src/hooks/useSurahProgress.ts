@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback } from 'react'
 import { db } from '@/lib/db'
-import type { JuzId, RamadanYear, ProgressStatus } from '@/types'
+import type { SurahId, RamadanYear, ProgressStatus } from '@/types'
 
 const NEXT_STATUS: Record<ProgressStatus, ProgressStatus> = {
   not_started: 'in_progress',
@@ -9,46 +9,45 @@ const NEXT_STATUS: Record<ProgressStatus, ProgressStatus> = {
   completed: 'not_started',
 }
 
-export function useQuranProgress(ramadanYear: RamadanYear) {
+export function useSurahProgress(ramadanYear: RamadanYear) {
   const records = useLiveQuery(
-    () => db.quranProgress.where({ ramadanYear }).toArray(),
+    () => db.surahProgress.where({ ramadanYear }).toArray(),
     [ramadanYear],
     [],
   )
 
-  // Build a map: juzId → status
   const statusMap = new Map<number, ProgressStatus>()
   for (const r of records) {
-    statusMap.set(r.juzId, r.status)
+    statusMap.set(r.surahId, r.status)
   }
 
   const getStatus = useCallback(
-    (id: JuzId): ProgressStatus => statusMap.get(id) ?? 'not_started',
+    (id: SurahId): ProgressStatus => statusMap.get(id) ?? 'not_started',
     [statusMap],
   )
 
-  /** Set status to a specific value only if the current status matches `from`. */
+  /** Set status only if current matches `from`. Used for auto-tracking. */
   const setStatusIf = useCallback(
-    async (id: JuzId, from: ProgressStatus, to: ProgressStatus) => {
+    async (id: SurahId, from: ProgressStatus, to: ProgressStatus) => {
       const current = statusMap.get(id) ?? 'not_started'
-      if (current !== from) return // no-op if status doesn't match
+      if (current !== from) return
 
       const now = new Date().toISOString()
-      const existing = await db.quranProgress
-        .where('[juzId+ramadanYear]')
+      const existing = await db.surahProgress
+        .where('[surahId+ramadanYear]')
         .equals([id, ramadanYear])
         .first()
 
       if (existing) {
-        await db.quranProgress.update(existing.id!, {
+        await db.surahProgress.update(existing.id!, {
           status: to,
           updatedAt: now,
           completedAt: to === 'completed' ? now : undefined,
           syncedAt: undefined,
         })
       } else {
-        await db.quranProgress.add({
-          juzId: id,
+        await db.surahProgress.add({
+          surahId: id,
           ramadanYear,
           status: to,
           updatedAt: now,
@@ -59,27 +58,28 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
     [ramadanYear, statusMap],
   )
 
+  /** Manual cycle: not_started → in_progress → completed → not_started */
   const cycleStatus = useCallback(
-    async (id: JuzId) => {
+    async (id: SurahId) => {
       const current = statusMap.get(id) ?? 'not_started'
       const next = NEXT_STATUS[current]
       const now = new Date().toISOString()
 
-      const existing = await db.quranProgress
-        .where('[juzId+ramadanYear]')
+      const existing = await db.surahProgress
+        .where('[surahId+ramadanYear]')
         .equals([id, ramadanYear])
         .first()
 
       if (existing) {
-        await db.quranProgress.update(existing.id!, {
+        await db.surahProgress.update(existing.id!, {
           status: next,
           updatedAt: now,
           completedAt: next === 'completed' ? now : undefined,
-          syncedAt: undefined, // mark as pending sync
+          syncedAt: undefined,
         })
       } else {
-        await db.quranProgress.add({
-          juzId: id,
+        await db.surahProgress.add({
+          surahId: id,
           ramadanYear,
           status: next,
           updatedAt: now,
@@ -99,6 +99,6 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
     cycleStatus,
     completedCount,
     inProgressCount,
-    totalJuz: 30,
+    totalSurahs: 114,
   }
 }

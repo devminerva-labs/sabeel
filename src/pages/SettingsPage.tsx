@@ -1,7 +1,10 @@
+import { Link } from 'react-router-dom'
 import { useTheme } from '@/hooks/useTheme'
+import { useAuth } from '@/hooks/useAuth'
 
 export function SettingsPage() {
   const { theme, setTheme, isDark } = useTheme()
+  const { user } = useAuth()
 
   return (
     <div className="space-y-6">
@@ -29,6 +32,20 @@ export function SettingsPage() {
           Currently: {isDark ? 'Dark' : 'Light'} mode
         </p>
       </div>
+
+      {/* Admin link — visible to logged-in users */}
+      {user && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Admin</h2>
+          <Link
+            to="/app/admin"
+            className="block rounded-lg border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+          >
+            User Dashboard
+            <span className="block text-xs text-muted-foreground mt-0.5">View all signed-in users and their progress</span>
+          </Link>
+        </div>
+      )}
 
       {/* About */}
       <div className="space-y-2">

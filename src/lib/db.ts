@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { JuzId, RamadanYear, ProgressStatus, AdhkarCategory, AdhkarCounts, PrayerName, PrayerStatus, VoluntaryPrayerType } from '@/types'
+import type { JuzId, SurahId, RamadanYear, ProgressStatus, AdhkarCategory, AdhkarCounts, PrayerName, PrayerStatus, VoluntaryPrayerType } from '@/types'
 
 export interface QuranProgressRecord {
   id?: number
@@ -54,8 +54,19 @@ export interface TafsirCacheRecord {
   fetchedAt: string
 }
 
+export interface SurahProgressRecord {
+  id?: number
+  surahId: SurahId
+  ramadanYear: RamadanYear
+  status: ProgressStatus
+  completedAt?: string
+  updatedAt: string
+  syncedAt?: string
+}
+
 class SabeelDB extends Dexie {
   quranProgress!: Table<QuranProgressRecord>
+  surahProgress!: Table<SurahProgressRecord>
   adhkarSessions!: Table<AdhkarSessionRecord>
   prayerLogs!: Table<PrayerLogRecord>
   voluntaryPrayers!: Table<VoluntaryPrayerRecord>
@@ -77,6 +88,15 @@ class SabeelDB extends Dexie {
     })
     this.version(4).stores({
       quranProgress: '++id, ramadanYear, [juzId+ramadanYear], syncedAt',
+      adhkarSessions: '++id, [sessionDate+category], syncedAt',
+      prayerLogs: '++id, [date+prayer], syncedAt',
+      voluntaryPrayers: '++id, [date+type], syncedAt',
+      quranCache: 'juzNumber',
+      tafsirCache: 'surahAyah',
+    })
+    this.version(5).stores({
+      quranProgress: '++id, ramadanYear, [juzId+ramadanYear], syncedAt',
+      surahProgress: '++id, ramadanYear, [surahId+ramadanYear], syncedAt',
       adhkarSessions: '++id, [sessionDate+category], syncedAt',
       prayerLogs: '++id, [date+prayer], syncedAt',
       voluntaryPrayers: '++id, [date+type], syncedAt',

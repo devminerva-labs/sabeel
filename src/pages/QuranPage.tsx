@@ -5,9 +5,10 @@ import { SurahList } from '@/components/SurahList'
 import { ProgressRing } from '@/components/ProgressRing'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
+import { useSurahProgress } from '@/hooks/useSurahProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
 import { calculateCatchUp } from '@/lib/catch-up'
-import { juzId, type JuzId } from '@/types'
+import { juzId, surahId, type JuzId } from '@/types'
 import { JUZ_DATA } from '@/content/juz-data'
 import { getJuzCached } from '@/lib/api/quran.api'
 
@@ -40,11 +41,51 @@ export function QuranPage() {
   const [selectedJuz, setSelectedJuz] = useState<number | null>(null)
   const [targetSurah, setTargetSurah] = useState<number | undefined>(undefined)
   const [view, setView] = useState<QuranView>('juz')
+  const [autoTrackMsg, setAutoTrackMsg] = useState<string | null>(null)
+
+  // We need a stable RamadanYear for the hook — use 0 as placeholder when outside Ramadan
+  // The hook will just return empty data for a non-existent year
+  const safeYear = (ramadanYear ?? 0) as import('@/types').RamadanYear
+  const progress = useQuranProgress(safeYear)
+  const surahProg = useSurahProgress(safeYear)
 
   const openJuz = (juz: number, surah?: number) => {
     setSelectedJuz(juz)
     setTargetSurah(surah)
+    setAutoTrackMsg(null)
   }
+
+  // Auto-tracking callbacks for the reader
+  const handleStartReading = useCallback(() => {
+    if (!ramadanYear || selectedJuz === null) return
+    const id = juzId(selectedJuz)
+    const current = progress.getStatus(id)
+    if (current === 'not_started') {
+      progress.setStatusIf(id, 'not_started', 'in_progress')
+      setAutoTrackMsg(`Juz ${selectedJuz} marked as in progress`)
+      setTimeout(() => setAutoTrackMsg(null), 3000)
+    }
+  }, [ramadanYear, progress, selectedJuz])
+
+  const handleFinishReading = useCallback(() => {
+    if (!ramadanYear || selectedJuz === null) return
+    const id = juzId(selectedJuz)
+    const current = progress.getStatus(id)
+    if (current === 'in_progress') {
+      progress.setStatusIf(id, 'in_progress', 'completed')
+      setAutoTrackMsg(`Juz ${selectedJuz} marked as completed!`)
+      setTimeout(() => setAutoTrackMsg(null), 4000)
+    }
+  }, [ramadanYear, progress, selectedJuz])
+
+  const handleSurahRead = useCallback((surahNumber: number) => {
+    if (!ramadanYear) return
+    const id = surahId(surahNumber)
+    const current = surahProg.getStatus(id)
+    if (current !== 'completed') {
+      surahProg.setStatusIf(id, current, 'completed')
+    }
+  }, [ramadanYear, surahProg])
 
   if (selectedJuz !== null) {
     return (
@@ -63,8 +104,22 @@ export function QuranPage() {
             </span>
           </h1>
         </div>
+
+        {/* Auto-track notification */}
+        {autoTrackMsg && (
+          <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-2 text-sm font-medium text-primary text-center animate-in fade-in slide-in-from-top-2 duration-300">
+            {autoTrackMsg}
+          </div>
+        )}
+
         <ErrorBoundary level="component" fallback={<p className="text-center text-muted-foreground">Reader failed to load.</p>}>
-          <QuranReader juzNumber={selectedJuz} targetSurah={targetSurah} />
+          <QuranReader
+            juzNumber={selectedJuz}
+            targetSurah={targetSurah}
+            onStartReading={handleStartReading}
+            onFinishReading={handleFinishReading}
+            onSurahRead={handleSurahRead}
+          />
         </ErrorBoundary>
       </div>
     )
@@ -97,6 +152,7 @@ export function QuranPage() {
       onSelectJuz={openJuz}
       view={view}
       onViewChange={setView}
+      surahProgress={surahProg}
     />
   )
 }
@@ -108,6 +164,7 @@ function QuranGridView({
   onSelectJuz,
   view,
   onViewChange,
+  surahProgress,
 }: {
   ramadanYear: import('@/types').RamadanYear
   dayNumber: number | null
@@ -115,6 +172,7 @@ function QuranGridView({
   onSelectJuz: (juz: number, surah?: number) => void
   view: QuranView
   onViewChange: (v: QuranView) => void
+  surahProgress: ReturnType<typeof useSurahProgress>
 }) {
   const { completedCount, totalJuz } = useQuranProgress(ramadanYear)
   const catchUp = dayNumber ? calculateCatchUp(completedCount, dayNumber, totalDays) : null
@@ -155,7 +213,11 @@ function QuranGridView({
           </ErrorBoundary>
         </>
       ) : (
-        <SurahList onSelectSurah={(juz, surah) => onSelectJuz(juz, surah)} />
+        <SurahList
+          onSelectSurah={(juz, surah) => onSelectJuz(juz, surah)}
+          getSurahStatus={(id) => surahProgress.getStatus(surahId(id))}
+          onCycleSurahStatus={(id) => surahProgress.cycleStatus(surahId(id))}
+        />
       )}
     </div>
   )
