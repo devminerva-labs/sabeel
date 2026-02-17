@@ -9,7 +9,7 @@ interface RamadanSeason {
 // Hardcoded — avoids controversy and temporal drift issues.
 // Add new years before each Ramadan.
 export const RAMADAN_SEASONS: Record<number, RamadanSeason> = {
-  2026: { start: '2026-02-17', end: '2026-03-18', days: 30 },
+  2026: { start: '2026-02-18', end: '2026-03-19', days: 30 },
   2027: { start: '2027-02-07', end: '2027-03-08', days: 30 },
 }
 
