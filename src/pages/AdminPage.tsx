@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { getUserStats, type UserStat } from '@/lib/api/admin.api'
 
-const ADMIN_ID = '41dc3097-39b0-482f-a087-62c9a6bdbc5d'
+const ADMIN_IDS = new Set([
+  '41dc3097-39b0-482f-a087-62c9a6bdbc5d', // faisalhusseini2001 (email)
+  'c0910e56-47e9-4474-bff6-5cdb747c555f', // devfaisalhusseini2001 (google)
+])
 
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return 'Never'
@@ -22,7 +25,7 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const isAdmin = user?.id === ADMIN_ID
+  const isAdmin = !!user?.id && ADMIN_IDS.has(user.id)
 
   useEffect(() => {
     if (authLoading) return

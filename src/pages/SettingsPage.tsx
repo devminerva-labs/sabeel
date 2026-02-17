@@ -34,7 +34,7 @@ export function SettingsPage() {
       </div>
 
       {/* Admin link — only visible to admin */}
-      {user?.id === '41dc3097-39b0-482f-a087-62c9a6bdbc5d' && (
+      {user?.id && ['41dc3097-39b0-482f-a087-62c9a6bdbc5d', 'c0910e56-47e9-4474-bff6-5cdb747c555f'].includes(user.id) && (
         <div className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Admin</h2>
           <Link

@@ -1,4 +1,4 @@
--- Restrict get_user_stats() to the admin user only
+-- Allow both admin accounts to access get_user_stats()
 CREATE OR REPLACE FUNCTION get_user_stats()
 RETURNS TABLE (
   user_id UUID,
@@ -24,7 +24,10 @@ AS $$
   FROM profiles p
   JOIN auth.users u ON u.id = p.id
   LEFT JOIN quran_progress qp ON qp.user_id = p.id
-  WHERE auth.uid() IN ('41dc3097-39b0-482f-a087-62c9a6bdbc5d', 'c0910e56-47e9-4474-bff6-5cdb747c555f')
+  WHERE auth.uid() IN (
+    '41dc3097-39b0-482f-a087-62c9a6bdbc5d',
+    'c0910e56-47e9-4474-bff6-5cdb747c555f'
+  )
   GROUP BY p.id, p.display_name, u.email, u.created_at, u.last_sign_in_at
   ORDER BY u.last_sign_in_at DESC NULLS LAST;
 $$;
