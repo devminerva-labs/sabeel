@@ -1,15 +1,51 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState, useCallback } from 'react'
 import { PrayerCard } from '@/components/PrayerCard'
 import { usePrayerLog } from '@/hooks/usePrayerLog'
 import { useVoluntaryPrayers } from '@/hooks/useVoluntaryPrayers'
-import { getPrayerTimes, formatPrayerTime } from '@/lib/prayer-times'
+import { useGeolocation } from '@/hooks/useGeolocation'
+import {
+  getPrayerTimes,
+  formatPrayerTime,
+  CALCULATION_METHODS,
+  getSavedCalculationMethod,
+  saveCalculationMethod,
+  type CalculationMethodKey,
+} from '@/lib/prayer-times'
 import { FARD_PRAYERS, RAWATIB_PRAYERS, STANDALONE_PRAYERS, ALL_VOLUNTARY_PRAYERS } from '@/content/prayer-data'
 
 export function PrayerPage() {
   const { getStatus, togglePrayer, prayedCount, date } = usePrayerLog()
   const { isCompleted, toggle, completedCount } = useVoluntaryPrayers()
+  const { status: geoStatus, error: geoError, requestLocation, hasCoords } = useGeolocation()
 
-  const times = useMemo(() => getPrayerTimes(new Date()), [])
+  const [method, setMethod] = useState<CalculationMethodKey>(getSavedCalculationMethod)
+  // Bump to force recompute after geolocation changes
+  const [coordsVersion, setCoordsVersion] = useState(0)
+
+  // Auto-request geolocation on mount if no saved coords
+  useEffect(() => {
+    if (!hasCoords) {
+      requestLocation()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When geolocation completes, bump version to recalculate times
+  useEffect(() => {
+    if (geoStatus === 'granted') {
+      setCoordsVersion((v) => v + 1)
+    }
+  }, [geoStatus])
+
+  const handleMethodChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMethod = e.target.value as CalculationMethodKey
+    saveCalculationMethod(newMethod)
+    setMethod(newMethod)
+  }, [])
+
+  const times = useMemo(
+    () => getPrayerTimes(new Date()),
+    [method, coordsVersion] // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -17,11 +53,52 @@ export function PrayerPage() {
     day: 'numeric',
   })
 
+  const locationLabel =
+    geoStatus === 'requesting'
+      ? 'Detecting your location...'
+      : geoStatus === 'granted'
+        ? 'Using your location'
+        : geoStatus === 'denied' || geoStatus === 'unavailable'
+          ? geoError ?? 'Using default (Makkah)'
+          : 'Using default (Makkah)'
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Prayer Tracker</h1>
         <p className="text-sm text-muted-foreground">{formattedDate}</p>
+      </div>
+
+      {/* Location & method settings */}
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{locationLabel}</span>
+          {(geoStatus === 'denied' || geoStatus === 'idle') && (
+            <button
+              onClick={requestLocation}
+              className="text-xs text-primary font-medium hover:underline"
+            >
+              {geoStatus === 'denied' ? 'Retry' : 'Detect location'}
+            </button>
+          )}
+        </div>
+        <div>
+          <label htmlFor="calc-method" className="text-xs text-muted-foreground block mb-1">
+            Calculation method
+          </label>
+          <select
+            id="calc-method"
+            value={method}
+            onChange={handleMethodChange}
+            className="w-full text-sm rounded-md border border-border bg-background px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {Object.entries(CALCULATION_METHODS).map(([key, { label }]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Summary */}

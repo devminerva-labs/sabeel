@@ -96,3 +96,95 @@ body {
   letter-spacing: 0;
   unicode-bidi: isolate;
 }
+
+/* Mushaf page container */
+.mushaf-page {
+  background: var(--color-mushaf-bg, #fdf6e3);
+  color: var(--color-mushaf-text, #2c1810);
+  padding: 1.25rem 1rem;
+  border-radius: 0.5rem;
+  line-height: 3;
+}
+
+.dark .mushaf-page {
+  --color-mushaf-bg: #1a1a1a;
+  --color-mushaf-text: #e8dcc8;
+}
+
+/* Continuous flowing Arabic text */
+.mushaf-text {
+  font-family: var(--font-arabic);
+  font-size: 1.625rem;
+  direction: rtl;
+  text-align: justify;
+  line-height: 3;
+  word-spacing: 0.05em;
+}
+
+/* Inline verse number marker */
+.verse-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-family: var(--font-arabic-ui);
+  color: var(--color-accent);
+  vertical-align: middle;
+  margin: 0 0.15em;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.15s;
+  line-height: 1;
+}
+
+.verse-marker:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+  transform: scale(1.1);
+}
+
+/* Surah header ornament */
+.surah-header-ornament {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  border: 2px solid var(--color-accent);
+  border-radius: 0.5rem;
+  position: relative;
+  background: var(--color-mushaf-bg, #fdf6e3);
+}
+
+.dark .surah-header-ornament {
+  background: var(--color-mushaf-bg, #1a1a1a);
+}
+
+.surah-header-ornament::before,
+.surah-header-ornament::after {
+  content: '❊';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-accent);
+  font-size: 1rem;
+}
+
+.surah-header-ornament::before {
+  left: 0.5rem;
+}
+
+.surah-header-ornament::after {
+  right: 0.5rem;
+}
+
+/* Bismillah line — block display to break flow */
+.mushaf-bismillah {
+  display: block;
+  text-align: center;
+  color: var(--color-accent);
+  font-size: 1.5rem;
+  padding: 0.5rem 0;
+  line-height: 2.5;
+}

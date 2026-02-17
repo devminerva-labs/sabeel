@@ -1,9 +1,96 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuranReader } from '@/hooks/useQuranReader'
-import { ArabicText } from '@/components/ArabicText'
 import { AyahDetailSheet } from '@/components/AyahDetailSheet'
 
-// Surah names for headers (subset used in Quran reader)
+function ayahAudioUrl(surah: number, ayah: number): string {
+  const s = String(surah).padStart(3, '0')
+  const a = String(ayah).padStart(3, '0')
+  return `https://verses.quran.com/Alafasy/mp3/${s}${a}.mp3`
+}
+
+function useSurahAudio() {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const queueRef = useRef<{ surah: number; ayah: number }[]>([])
+  const indexRef = useRef(0)
+  const [playingSurah, setPlayingSurah] = useState<number | null>(null)
+  const [currentAyah, setCurrentAyah] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const stop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+    queueRef.current = []
+    indexRef.current = 0
+    setPlayingSurah(null)
+    setCurrentAyah(0)
+    setIsLoading(false)
+  }, [])
+
+  const playNext = useCallback(() => {
+    const queue = queueRef.current
+    const idx = indexRef.current
+
+    const verse = queue[idx]
+    if (!verse) {
+      stop()
+      return
+    }
+
+    setCurrentAyah(verse.ayah)
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio()
+    }
+
+    const audio = audioRef.current
+    audio.src = ayahAudioUrl(verse.surah, verse.ayah)
+    setIsLoading(true)
+
+    audio.oncanplay = () => setIsLoading(false)
+    audio.onended = () => {
+      indexRef.current++
+      playNext()
+    }
+    audio.onerror = () => {
+      // Skip to next verse on error
+      indexRef.current++
+      playNext()
+    }
+
+    audio.play().catch(() => {
+      stop()
+    })
+  }, [stop])
+
+  const play = useCallback((surah: number, verses: { surah: number; ayah: number }[]) => {
+    stop()
+    queueRef.current = verses
+    indexRef.current = 0
+    setPlayingSurah(surah)
+    playNext()
+  }, [stop, playNext])
+
+  const toggle = useCallback((surah: number, verses: { surah: number; ayah: number }[]) => {
+    if (playingSurah === surah) {
+      stop()
+    } else {
+      play(surah, verses)
+    }
+  }, [playingSurah, play, stop])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause()
+    }
+  }, [])
+
+  return { playingSurah, currentAyah, isLoading, toggle, stop }
+}
+
+// Surah names for headers (all 114)
 const SURAH_NAMES: Record<number, { arabic: string; english: string }> = {
   1: { arabic: 'الفاتحة', english: 'Al-Fatiha' },
   2: { arabic: 'البقرة', english: 'Al-Baqarah' },
@@ -121,16 +208,33 @@ const SURAH_NAMES: Record<number, { arabic: string; english: string }> = {
   114: { arabic: 'الناس', english: 'An-Nas' },
 }
 
+// Eastern Arabic numerals
+const EASTERN_ARABIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
+
+function toArabicNumeral(n: number): string {
+  return String(n)
+    .split('')
+    .map((d) => EASTERN_ARABIC[Number(d)])
+    .join('')
+}
+
 interface Ayah {
   surah: number
   ayah: number
   arabic: string
   translation: string
+  isBismillah?: boolean
+}
+
+interface SurahGroup {
+  surah: number
+  name: { arabic: string; english: string } | undefined
+  ayahs: Ayah[]
 }
 
 interface QuranReaderProps {
   juzNumber: number
-  targetSurah?: number // scroll to this surah after loading
+  targetSurah?: number
 }
 
 export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
@@ -138,6 +242,27 @@ export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null)
   const [selectedSurahName, setSelectedSurahName] = useState<string | undefined>(undefined)
   const surahHeaderRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const { playingSurah, currentAyah, isLoading: audioLoading, toggle: toggleSurahAudio } = useSurahAudio()
+
+  // Group ayahs by surah
+  const surahGroups = useMemo(() => {
+    const groups: SurahGroup[] = []
+    let current: SurahGroup | null = null
+
+    for (const ayah of ayahs) {
+      if (!current || ayah.surah !== current.surah) {
+        current = {
+          surah: ayah.surah,
+          name: SURAH_NAMES[ayah.surah],
+          ayahs: [],
+        }
+        groups.push(current)
+      }
+      current.ayahs.push(ayah)
+    }
+
+    return groups
+  }, [ayahs])
 
   // Scroll to target surah once data loads
   useEffect(() => {
@@ -171,57 +296,95 @@ export function QuranReader({ juzNumber, targetSurah }: QuranReaderProps) {
     )
   }
 
-  // Group ayahs by surah for headers
-  let currentSurah = 0
-
   return (
     <>
-      <p className="text-xs text-muted-foreground text-center mb-3">Tap any verse for translation & tafsir</p>
-      <div className="space-y-1">
-        {ayahs.map((ayah) => {
-          const showSurahHeader = ayah.surah !== currentSurah
-          if (showSurahHeader) currentSurah = ayah.surah
-
-          const surahInfo = SURAH_NAMES[ayah.surah]
-
-          const key = ayah.isBismillah ? `bismillah-${ayah.surah}` : `${ayah.surah}-${ayah.ayah}`
-
-          return (
-            <div key={key}>
-              {showSurahHeader && surahInfo && (
-                <div
-                  ref={(el) => { if (el) surahHeaderRefs.current.set(ayah.surah, el) }}
-                  className="text-center py-4 my-2 border-y border-border"
-                >
-                  <ArabicText as="h2" className="text-xl font-bold">
-                    {surahInfo.arabic}
-                  </ArabicText>
-                  <p className="text-sm text-muted-foreground mt-1">{surahInfo.english}</p>
-                </div>
-              )}
-              {ayah.isBismillah ? (
-                <div className="text-center py-3">
-                  <ArabicText as="p" className="text-2xl text-muted-foreground">
-                    {ayah.arabic}
-                  </ArabicText>
-                </div>
-              ) : (
+      <p className="text-xs text-muted-foreground text-center mb-3">Tap any verse marker for translation & tafsir</p>
+      <div className="mushaf-page">
+        {surahGroups.map((group) => (
+          <div key={group.surah}>
+            {/* Ornamental surah header */}
+            {group.name && (
+              <div
+                ref={(el) => { if (el) surahHeaderRefs.current.set(group.surah, el) }}
+                className="surah-header-ornament"
+              >
+                <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-arabic)' }} lang="ar">
+                  {group.name.arabic}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">{group.name.english}</p>
                 <button
                   onClick={() => {
-                    setSelectedAyah(ayah)
-                    setSelectedSurahName(surahInfo?.english)
+                    const verses = group.ayahs
+                      .filter((a) => !a.isBismillah && a.ayah > 0)
+                      .map((a) => ({ surah: a.surah, ayah: a.ayah }))
+                    toggleSurahAudio(group.surah, verses)
                   }}
-                  className="w-full text-right py-2 px-1 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Verse ${ayah.ayah} of ${surahInfo?.english ?? `Surah ${ayah.surah}`}. Tap for details.`}
+                  aria-label={playingSurah === group.surah ? `Stop playing ${group.name.english}` : `Play ${group.name.english}`}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-accent text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
-                  <ArabicText as="p" className="text-2xl leading-[2.8]">
-                    {ayah.arabic} ﴿{ayah.ayah}﴾
-                  </ArabicText>
+                  {playingSurah === group.surah ? (
+                    <>
+                      {audioLoading ? (
+                        <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin block" />
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                          <rect x="3" y="2" width="4" height="12" rx="1" />
+                          <rect x="9" y="2" width="4" height="12" rx="1" />
+                        </svg>
+                      )}
+                      Playing · Ayah {currentAyah}
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M3 2.5l10 5.5-10 5.5V2.5z" />
+                      </svg>
+                      Play Surah
+                    </>
+                  )}
                 </button>
-              )}
-            </div>
-          )
-        })}
+              </div>
+            )}
+
+            {/* Continuous flowing text */}
+            <p className="mushaf-text" lang="ar">
+              {group.ayahs.map((ayah) => {
+                if (ayah.isBismillah) {
+                  return (
+                    <span key={`bismillah-${ayah.surah}`} className="mushaf-bismillah">
+                      {ayah.arabic}
+                    </span>
+                  )
+                }
+
+                return (
+                  <span key={`${ayah.surah}-${ayah.ayah}`}>
+                    {ayah.arabic}{' '}
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="verse-marker"
+                      aria-label={`Verse ${ayah.ayah} of ${group.name?.english ?? `Surah ${ayah.surah}`}. Tap for details.`}
+                      onClick={() => {
+                        setSelectedAyah(ayah)
+                        setSelectedSurahName(group.name?.english)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setSelectedAyah(ayah)
+                          setSelectedSurahName(group.name?.english)
+                        }
+                      }}
+                    >
+                      {toArabicNumeral(ayah.ayah)}
+                    </span>{' '}
+                  </span>
+                )
+              })}
+            </p>
+          </div>
+        ))}
       </div>
 
       <AyahDetailSheet
