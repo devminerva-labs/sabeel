@@ -21,36 +21,15 @@ export async function signInWithMagicLink(email: string) {
   return supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT_URL } })
 }
 
-/** Detect if running as installed PWA (standalone mode) */
-function isStandalone(): boolean {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as unknown as { standalone?: boolean }).standalone === true
-  )
-}
-
 export async function signInWithGoogle() {
   if (!supabase) return { data: null, error: new Error('Supabase not configured') }
 
-  if (isStandalone()) {
-    // In standalone PWA mode, OAuth opens in a system browser tab.
-    // We skip the automatic redirect so Supabase returns the URL,
-    // then open it ourselves. When the user comes back to the PWA,
-    // the auth listener in useAuth picks up the session.
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: REDIRECT_URL,
-        skipBrowserRedirect: true,
-      },
-    })
-    if (error) return { data, error }
-    if (data.url) {
-      window.open(data.url, '_blank')
-    }
-    return { data, error: null }
-  }
-
+  // Always use window.location.href redirect (Supabase default).
+  // The previous window.open() approach caused "The operation was aborted" on iOS PWA:
+  //   - window.open opens Safari in a separate process with its own localStorage
+  //   - The PKCE verifier is stored in the PWA's localStorage
+  //   - The auth callback opens a fresh PWA instance with no PKCE verifier → exchange fails
+  // iOS PWA User-Agent includes "Safari/604.1" so Google does not block it as embedded.
   return supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: REDIRECT_URL },
