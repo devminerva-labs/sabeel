@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { db } from '@/lib/db'
-import { syncLocalProgress } from '@/lib/api/quran-progress.api'
+import { syncLocalProgress, pullServerProgress } from '@/lib/api/quran-progress.api'
 import { supabase } from '@/lib/supabase/client'
 import type { JuzId, RamadanYear, ProgressStatus } from '@/types'
 
@@ -26,7 +26,7 @@ const NEXT_STATUS: Record<ProgressStatus, ProgressStatus> = {
   completed: 'not_started',
 }
 
-export function useQuranProgress(ramadanYear: RamadanYear) {
+export function useQuranProgress(ramadanYear: RamadanYear, userId?: string | null) {
   const queryClient = useQueryClient()
   const invalidateLeaderboard = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ['halaqah-leaderboard'] }),
@@ -38,6 +38,13 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
     [ramadanYear],
     [],
   )
+
+  // Pull sync on mount and when userId changes
+  useEffect(() => {
+    if (userId && ramadanYear) {
+      pullServerProgress(userId, ramadanYear).catch(console.error)
+    }
+  }, [userId, ramadanYear])
 
   // Build a map: juzId → status
   const statusMap = new Map<number, ProgressStatus>()
@@ -118,6 +125,13 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
   const completedCount = records.filter((r) => r.status === 'completed').length
   const inProgressCount = records.filter((r) => r.status === 'in_progress').length
 
+  // Manual sync trigger
+  const pullSync = useCallback(async () => {
+    if (!userId || !ramadanYear) return
+    await pullServerProgress(userId, ramadanYear)
+    invalidateLeaderboard()
+  }, [userId, ramadanYear, invalidateLeaderboard])
+
   return {
     getStatus,
     setStatusIf,
@@ -125,5 +139,6 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
     completedCount,
     inProgressCount,
     totalJuz: 30,
+    pullSync,
   }
 }

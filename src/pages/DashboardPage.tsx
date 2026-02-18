@@ -6,6 +6,7 @@ import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
 import { usePrayerLog } from '@/hooks/usePrayerLog'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { useAuth } from '@/hooks/useAuth'
 import { calculateCatchUp } from '@/lib/catch-up'
 import { db } from '@/lib/db'
 import type { AdhkarCategory } from '@/types'
@@ -28,6 +29,7 @@ function useAdhkarTodayCount() {
 }
 
 export function DashboardPage() {
+  const { user } = useAuth()
   const { ramadanYear, dayNumber, season } = useRamadanContext()
   const { canInstall, install } = usePWAInstall()
   const { prayedCount } = usePrayerLog()
@@ -60,7 +62,7 @@ export function DashboardPage() {
 
       {/* Progress ring */}
       {ramadanYear ? (
-        <DashboardProgress ramadanYear={ramadanYear} dayNumber={dayNumber} totalDays={season?.days ?? 30} />
+        <DashboardProgress ramadanYear={ramadanYear} dayNumber={dayNumber} totalDays={season?.days ?? 30} userId={user?.id} />
       ) : (
         <div className="flex justify-center">
           <ProgressRing completed={0} total={30} />
@@ -140,12 +142,14 @@ function DashboardProgress({
   ramadanYear,
   dayNumber,
   totalDays,
+  userId,
 }: {
   ramadanYear: import('@/types').RamadanYear
   dayNumber: number | null
   totalDays: 29 | 30
+  userId?: string | null
 }) {
-  const { completedCount, totalJuz } = useQuranProgress(ramadanYear)
+  const { completedCount, totalJuz } = useQuranProgress(ramadanYear, userId)
   const catchUp = dayNumber ? calculateCatchUp(completedCount, dayNumber, totalDays) : null
 
   return (

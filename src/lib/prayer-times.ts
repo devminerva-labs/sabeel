@@ -81,3 +81,7 @@ export function getSavedCoordinates(): Coordinates | null {
     return null
   }
 }
+
+export function clearSavedCoordinates(): void {
+  localStorage.removeItem(STORAGE_KEY)
+}

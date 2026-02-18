@@ -92,3 +92,22 @@ export async function getJuzCached(juzNumber: number): Promise<QuranCacheRecord[
     throw err
   }
 }
+
+// Pre-cache all Juz for offline reading
+export async function precacheAllJuz(progressCallback?: (current: number, total: number) => void): Promise<void> {
+  const total = 30
+  for (let juz = 1; juz <= total; juz++) {
+    try {
+      await getJuzCached(juz)
+      progressCallback?.(juz, total)
+    } catch (err) {
+      console.error(`Failed to cache Juz ${juz}:`, err)
+    }
+  }
+}
+
+// Check if all Juz are cached
+export async function areAllJuzCached(): Promise<boolean> {
+  const cached = await db.quranCache.toArray()
+  return cached.length === 30 && cached.every(c => c.ayahs.length > 0)
+}

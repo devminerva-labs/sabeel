@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuranReader } from '@/hooks/useQuranReader'
 import { AyahDetailSheet } from '@/components/AyahDetailSheet'
+import { db } from '@/lib/db'
 
 function ayahAudioUrl(surah: number, ayah: number): string {
   const s = String(surah).padStart(3, '0')
@@ -243,13 +244,28 @@ interface QuranReaderProps {
   onSurahRead?: (surahNumber: number) => void
 }
 
+type FontSize = 'small' | 'medium' | 'large'
+
+const FONT_SIZE_STORAGE_KEY = 'sabeel-quran-font-size'
+
+function getSavedFontSize(): FontSize {
+  const saved = localStorage.getItem(FONT_SIZE_STORAGE_KEY) as FontSize | null
+  return saved && ['small', 'medium', 'large'].includes(saved) ? saved : 'medium'
+}
+
+function saveFontSize(size: FontSize) {
+  localStorage.setItem(FONT_SIZE_STORAGE_KEY, size)
+}
+
 export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishReading, onSurahRead }: QuranReaderProps) {
   const { ayahs, isLoading, error } = useQuranReader(juzNumber)
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null)
   const [selectedSurahName, setSelectedSurahName] = useState<string | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(0)
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null)
+  const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null)
   const [slideKey, setSlideKey] = useState(0)
+  const [fontSize, setFontSize] = useState<FontSize>(getSavedFontSize())
   const { playingSurah, currentAyah, isLoading: audioLoading, toggle: toggleSurahAudio } = useSurahAudio()
   const startCalledRef = useRef(false)
   const finishCalledRef = useRef(false)
@@ -288,14 +304,43 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
 
   const totalPages = pages.length
 
-  // Find page containing target surah
+  // Restore bookmark on mount (only if no targetSurah override)
+  const bookmarkRestoredRef = useRef(false)
+  useEffect(() => {
+    if (targetSurah || bookmarkRestoredRef.current || pages.length === 0) return
+    bookmarkRestoredRef.current = true
+    db.readingBookmarks.get(juzNumber).then((bookmark) => {
+      if (bookmark && bookmark.page > 0 && bookmark.page < pages.length) {
+        setCurrentPage(bookmark.page)
+      }
+    })
+  }, [juzNumber, targetSurah, pages.length])
+
+  // Find page containing target surah - ensure it opens at Bismillah (ayah 0) or ayah 1
   useEffect(() => {
     if (!targetSurah || pages.length === 0) return
-    const pageIdx = pages.findIndex((page) =>
-      page.some((a) => a.surah === targetSurah && a.ayah <= 1),
+    // Look for the first occurrence of the surah, prioritizing Bismillah (ayah 0) or verse 1
+    let pageIdx = pages.findIndex((page) =>
+      page.some((a) => a.surah === targetSurah && (a.isBismillah || a.ayah === 0 || a.ayah === 1)),
     )
+    // If not found at start, look for any occurrence of the surah
+    if (pageIdx < 0) {
+      pageIdx = pages.findIndex((page) =>
+        page.some((a) => a.surah === targetSurah),
+      )
+    }
     if (pageIdx >= 0) setCurrentPage(pageIdx)
   }, [targetSurah, pages])
+
+  // Save bookmark whenever page changes
+  useEffect(() => {
+    if (pages.length === 0) return
+    db.readingBookmarks.put({
+      juzNumber,
+      page: currentPage,
+      updatedAt: new Date().toISOString(),
+    })
+  }, [juzNumber, currentPage, pages.length])
 
   // Auto-track: mark juz as "in_progress" when content loads
   useEffect(() => {
@@ -330,20 +375,25 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     }
   }, [currentPage, pages, surahGroups, onSurahRead])
 
-  // Navigate pages with slide direction
+  // Navigate pages with slide direction (RTL: next = left, prev = right)
   const goToPage = useCallback((page: number) => {
     const clamped = Math.max(0, Math.min(page, totalPages - 1))
     if (clamped === currentPage) return
+    // For RTL: going to next page (higher number) slides left, going to prev slides right
     setSlideDirection(clamped > currentPage ? 'left' : 'right')
+    setFlipDirection(clamped > currentPage ? 'next' : 'prev')
     setSlideKey((k) => k + 1)
     setCurrentPage(clamped)
     pageContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Reset flip animation after it completes
+    setTimeout(() => setFlipDirection(null), 600)
   }, [totalPages, currentPage])
 
+  // RTL navigation: next page is to the left, previous is to the right
   const nextPage = useCallback(() => goToPage(currentPage + 1), [currentPage, goToPage])
   const prevPage = useCallback(() => goToPage(currentPage - 1), [currentPage, goToPage])
 
-  // Touch swipe handling
+  // Touch swipe handling - RTL: swipe left goes to NEXT page (Arabic book style)
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
     if (touch) touchStartRef.current = { x: touch.clientX, y: touch.clientY }
@@ -360,17 +410,19 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
 
     // Only trigger if horizontal swipe > 50px and more horizontal than vertical
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      // Swipe left = next page, swipe right = previous page
+      // RTL: Swipe left = NEXT page (turning page forward in Arabic book)
+      // Swipe right = PREVIOUS page
       if (dx < 0) nextPage()
       else prevPage()
     }
   }, [nextPage, prevPage])
 
-  // Keyboard navigation
+  // Keyboard navigation - RTL: ArrowLeft goes NEXT (towards end of book)
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextPage()
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevPage()
+      // RTL navigation: Left arrow goes to next page, Right arrow goes to previous
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') nextPage()
+      else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') prevPage()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -435,19 +487,41 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     return !prevPageAyahs.some((a) => a.surah === group.surah)
   }
 
-  // Determine slide animation class
+  // Determine animation classes
   const slideClass = slideDirection === 'left'
     ? 'mushaf-slide-enter-left'
     : slideDirection === 'right'
       ? 'mushaf-slide-enter-right'
       : ''
+  const flipClass = flipDirection === 'next' 
+    ? 'mushaf-flip-next' 
+    : flipDirection === 'prev' 
+      ? 'mushaf-flip-prev' 
+      : ''
 
   return (
     <>
-      {/* Hint */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2 px-1">
-        <span>Swipe or tap arrows to turn pages</span>
-        <span>Page {currentPage + 1} of {totalPages}</span>
+      {/* Header with font size controls */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Font:</span>
+          <div className="flex rounded-md border border-border overflow-hidden text-xs">
+            {(['small', 'medium', 'large'] as const).map((size) => (
+              <button
+                key={size}
+                onClick={() => { setFontSize(size); saveFontSize(size) }}
+                className={`px-2 py-1 transition-colors ${
+                  fontSize === size 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-background hover:bg-muted'
+                }`}
+              >
+                {size.charAt(0).toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <span className="text-xs text-muted-foreground">Page {currentPage + 1} of {totalPages}</span>
       </div>
 
       {/* Page content with swipe */}
@@ -457,8 +531,8 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="mushaf-page min-h-[60vh]">
-          <div key={slideKey} className={slideClass}>
+        <div className={`mushaf-page min-h-[60vh] font-size-${fontSize}`}>
+          <div key={slideKey} className={`${slideClass} ${flipClass}`}>
             {pageGroups.map((group) => (
               <div key={`${group.surah}-${group.ayahs[0]?.ayah}`}>
                 {/* Surah header — only if the surah starts on this page */}
@@ -558,31 +632,31 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
         </div>
       </div>
 
-      {/* Navigation controls */}
-      <div className="flex items-center justify-between mt-4 gap-2">
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 0}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-lg bg-muted text-sm font-medium disabled:opacity-30 transition-opacity active:scale-95"
-          aria-label="Previous page"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M10 3L5 8l5 5" />
-          </svg>
-          Previous
-        </button>
-
-        <span className="text-sm font-medium text-muted-foreground tabular-nums">
-          {toArabicNumeral(currentPage + 1)} / {toArabicNumeral(totalPages)}
-        </span>
-
+      {/* Navigation controls - RTL: Next is on the left side */}
+      <div className="flex items-center justify-between mt-4 gap-2" dir="rtl">
         <button
           onClick={nextPage}
           disabled={currentPage === totalPages - 1}
           className="flex items-center gap-1 px-4 py-2.5 rounded-lg bg-muted text-sm font-medium disabled:opacity-30 transition-opacity active:scale-95"
           aria-label="Next page"
         >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M10 3L5 8l5 5" />
+          </svg>
           Next
+        </button>
+
+        <span className="text-sm font-medium text-muted-foreground tabular-nums" dir="ltr">
+          {toArabicNumeral(currentPage + 1)} / {toArabicNumeral(totalPages)}
+        </span>
+
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 0}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-lg bg-muted text-sm font-medium disabled:opacity-30 transition-opacity active:scale-95"
+          aria-label="Previous page"
+        >
+          Previous
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M6 3l5 5-5 5" />
           </svg>

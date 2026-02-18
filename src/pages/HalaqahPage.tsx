@@ -278,7 +278,7 @@ export function HalaqahPage() {
 }
 
 function HalaqahContent({ userId }: { userId: string }) {
-  const { halaqah, isLoadingHalaqah } = useHalaqah(userId)
+  const { halaqah, isLoadingHalaqah, halaqahError } = useHalaqah(userId)
 
   if (isLoadingHalaqah) {
     return (
@@ -286,6 +286,23 @@ function HalaqahContent({ userId }: { userId: string }) {
         <div className="h-6 rounded bg-muted w-1/3" />
         <div className="h-10 rounded bg-muted" />
         <div className="h-10 rounded bg-muted w-2/3" />
+      </div>
+    )
+  }
+
+  if (halaqahError) {
+    return (
+      <div className="space-y-6 text-center py-8">
+        <div className="space-y-2">
+          <p className="text-red-500 text-sm">{halaqahError}</p>
+          <p className="text-sm text-muted-foreground">Please try again later or contact support.</p>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-block bg-primary text-primary-foreground px-6 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Retry
+        </button>
       </div>
     )
   }

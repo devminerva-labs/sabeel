@@ -23,10 +23,12 @@ export function useHalaqah(userId: string | null) {
     queryFn: () => getMyHalaqah(userId!, year),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
+    retry: 2,
   })
 
   const halaqah = halaqahQuery.data?.halaqah ?? null
   const myNickname = halaqahQuery.data?.nickname ?? null
+  const halaqahError = halaqahQuery.data?.error ?? halaqahQuery.error?.message ?? null
 
   const leaderboardQuery = useQuery({
     queryKey: ['halaqah-leaderboard', halaqah?.id, year],
@@ -59,6 +61,7 @@ export function useHalaqah(userId: string | null) {
     halaqah,
     myNickname,
     isLoadingHalaqah: halaqahQuery.isLoading,
+    halaqahError,
     leaderboard: leaderboardQuery.data ?? [],
     isLoadingLeaderboard: leaderboardQuery.isLoading,
     createHalaqah: createMutation.mutateAsync,

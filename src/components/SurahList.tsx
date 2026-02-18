@@ -99,8 +99,10 @@ export function SurahList({ onSelectSurah, getSurahStatus, onCycleSurahStatus }:
               {/* Main row — tap to open reader */}
               <button
                 onClick={() => onSelectSurah(surah.juzStart, surah.id)}
-                className="flex-1 flex items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex-1 flex items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
                 aria-label={`${surah.englishName}, ${surah.verseCount} verses, ${badge.label || 'not started'}`}
+                style={{ touchAction: 'manipulation' }}
               >
                 {/* Number badge */}
                 <span className="shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">

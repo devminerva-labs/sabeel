@@ -64,6 +64,12 @@ export interface SurahProgressRecord {
   syncedAt?: string
 }
 
+export interface ReadingBookmarkRecord {
+  juzNumber: number // 1-30, used as PK
+  page: number
+  updatedAt: string
+}
+
 class SabeelDB extends Dexie {
   quranProgress!: Table<QuranProgressRecord>
   surahProgress!: Table<SurahProgressRecord>
@@ -72,6 +78,7 @@ class SabeelDB extends Dexie {
   voluntaryPrayers!: Table<VoluntaryPrayerRecord>
   quranCache!: Table<QuranCacheRecord>
   tafsirCache!: Table<TafsirCacheRecord>
+  readingBookmarks!: Table<ReadingBookmarkRecord>
 
   constructor() {
     super('SabeelDB')
@@ -102,6 +109,16 @@ class SabeelDB extends Dexie {
       voluntaryPrayers: '++id, [date+type], syncedAt',
       quranCache: 'juzNumber',
       tafsirCache: 'surahAyah',
+    })
+    this.version(6).stores({
+      quranProgress: '++id, ramadanYear, [juzId+ramadanYear], syncedAt',
+      surahProgress: '++id, ramadanYear, [surahId+ramadanYear], syncedAt',
+      adhkarSessions: '++id, [sessionDate+category], syncedAt',
+      prayerLogs: '++id, [date+prayer], syncedAt',
+      voluntaryPrayers: '++id, [date+type], syncedAt',
+      quranCache: 'juzNumber',
+      tafsirCache: 'surahAyah',
+      readingBookmarks: 'juzNumber',
     })
   }
 }

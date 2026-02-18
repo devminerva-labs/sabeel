@@ -97,20 +97,31 @@ export async function leaveHalaqah(halaqahId: string, userId: string): Promise<s
 export async function getMyHalaqah(
   userId: string,
   ramadanYear: RamadanYear,
-): Promise<{ halaqah: Halaqah | null; nickname: string | null }> {
-  if (!supabase) return { halaqah: null, nickname: null }
+): Promise<{ halaqah: Halaqah | null; nickname: string | null; error?: string }> {
+  if (!supabase) return { halaqah: null, nickname: null, error: 'Supabase not configured' }
 
-  const { data } = await supabase
-    .from('halaqah_members')
-    .select('nickname, halaqahs!inner(*)')
-    .eq('user_id', userId)
-    .eq('halaqahs.ramadan_year', ramadanYear)
-    .maybeSingle()
+  try {
+    const { data, error } = await supabase
+      .from('halaqah_members')
+      .select('nickname, halaqahs!inner(*)')
+      .eq('user_id', userId)
+      .eq('halaqahs.ramadan_year', ramadanYear)
+      .maybeSingle()
 
-  if (!data) return { halaqah: null, nickname: null }
+    if (error) {
+      console.error('Error fetching halaqah:', error)
+      return { halaqah: null, nickname: null, error: error.message }
+    }
 
-  const row = data as unknown as { halaqahs: Halaqah; nickname: string }
-  return { halaqah: row.halaqahs, nickname: row.nickname }
+    if (!data) return { halaqah: null, nickname: null }
+
+    const row = data as unknown as { halaqahs: Halaqah; nickname: string }
+    return { halaqah: row.halaqahs, nickname: row.nickname }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Exception fetching halaqah:', err)
+    return { halaqah: null, nickname: null, error: message }
+  }
 }
 
 export async function getLeaderboard(
@@ -120,34 +131,51 @@ export async function getLeaderboard(
 ): Promise<LeaderboardEntry[]> {
   if (!supabase) return []
 
-  // Fetch all members and their progress in two queries
-  const [membersRes, progressRes] = await Promise.all([
-    supabase
-      .from('halaqah_members')
-      .select('user_id, nickname')
-      .eq('halaqah_id', halaqahId),
-    supabase
-      .from('quran_progress')
-      .select('user_id, status')
-      .eq('ramadan_year', ramadanYear)
-      .in(
-        'user_id',
-        // We can only pass a subquery via a join, so we re-fetch member user_ids
-        // This is a simple client-side join for small groups (< 50 members)
-        (await supabase
-          .from('halaqah_members')
-          .select('user_id')
-          .eq('halaqah_id', halaqahId)
-        ).data?.map((m) => m.user_id) ?? [],
-      ),
-  ])
+  // Try the fast RPC first (single query, SECURITY DEFINER — no RLS issues)
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    'get_halaqah_leaderboard',
+    {
+      p_halaqah_id: halaqahId,
+      p_ramadan_year: ramadanYear,
+      p_my_user_id: myUserId,
+    },
+  )
 
-  const members = membersRes.data ?? []
-  const progress = progressRes.data ?? []
+  if (!rpcError && rpcData) {
+    return (rpcData as Array<{
+      nickname: string
+      juz_completed: number
+      juz_in_progress: number
+      is_me: boolean
+    }>).map((r) => ({
+      nickname: r.nickname,
+      juzCompleted: r.juz_completed,
+      juzInProgress: r.juz_in_progress,
+      isMe: r.is_me,
+    }))
+  }
+
+  // Fallback: client-side join (for when RPC hasn't been deployed yet)
+  const { data: members } = await supabase
+    .from('halaqah_members')
+    .select('user_id, nickname')
+    .eq('halaqah_id', halaqahId)
+
+  if (!members || members.length === 0) return []
+
+  const memberIds = members.map((m) => m.user_id)
+
+  const { data: progress } = await supabase
+    .from('quran_progress')
+    .select('user_id, status')
+    .eq('ramadan_year', ramadanYear)
+    .in('user_id', memberIds)
+
+  const progressList = progress ?? []
 
   return members
     .map((m) => {
-      const myProgress = progress.filter((p) => p.user_id === m.user_id)
+      const myProgress = progressList.filter((p) => p.user_id === m.user_id)
       return {
         nickname: m.nickname,
         juzCompleted: myProgress.filter((p) => p.status === 'completed').length,

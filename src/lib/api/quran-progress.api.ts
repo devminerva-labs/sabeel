@@ -59,3 +59,51 @@ export async function syncLocalProgress(userId: string): Promise<void> {
     unsynced.map((r) => ({ ...r, syncedAt: now })),
   )
 }
+
+// Pulls all progress from Supabase to local Dexie
+// Used for cross-device sync
+export async function pullServerProgress(userId: string, ramadanYear: RamadanYear): Promise<void> {
+  if (!supabase) return
+
+  const { data, error } = await supabase
+    .from('quran_progress')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('ramadan_year', ramadanYear)
+
+  if (error) {
+    console.error('[sync] pull from server failed:', error.message)
+    return
+  }
+
+  if (!data || data.length === 0) return
+
+  const now = new Date().toISOString()
+  
+  // Convert server records to local format
+  const localRecords = data.map((row) => ({
+    juzId: row.juz_id as JuzId,
+    ramadanYear: row.ramadan_year as RamadanYear,
+    status: row.status as ProgressStatus,
+    completedAt: row.completed_at,
+    updatedAt: row.updated_at,
+    syncedAt: now,
+  }))
+
+  // Upsert each record (use bulkPut for efficiency)
+  for (const record of localRecords) {
+    const existing = await db.quranProgress
+      .where('[juzId+ramadanYear]')
+      .equals([record.juzId, record.ramadanYear])
+      .first()
+    
+    if (existing) {
+      // Only update if server record is newer
+      if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+        await db.quranProgress.update(existing.id!, record)
+      }
+    } else {
+      await db.quranProgress.add(record)
+    }
+  }
+}

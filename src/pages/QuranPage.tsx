@@ -4,13 +4,15 @@ import { QuranReader } from '@/components/QuranReader'
 import { SurahList } from '@/components/SurahList'
 import { ProgressRing } from '@/components/ProgressRing'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useSurahProgress } from '@/hooks/useSurahProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
+import { useAuth } from '@/hooks/useAuth'
 import { calculateCatchUp } from '@/lib/catch-up'
 import { juzId, surahId, type JuzId } from '@/types'
 import { JUZ_DATA } from '@/content/juz-data'
-import { getJuzCached } from '@/lib/api/quran.api'
+import { getJuzCached, precacheAllJuz } from '@/lib/api/quran.api'
 
 type QuranView = 'juz' | 'surah'
 
@@ -42,12 +44,15 @@ export function QuranPage() {
   const [targetSurah, setTargetSurah] = useState<number | undefined>(undefined)
   const [view, setView] = useState<QuranView>('juz')
   const [autoTrackMsg, setAutoTrackMsg] = useState<string | null>(null)
+  const [downloadingJuz, setDownloadingJuz] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(0)
 
+  const { user } = useAuth()
   // We need a stable RamadanYear for the hook — use 0 as placeholder when outside Ramadan
   // The hook will just return empty data for a non-existent year
   const safeYear = (ramadanYear ?? 0) as import('@/types').RamadanYear
-  const progress = useQuranProgress(safeYear)
-  const surahProg = useSurahProgress(safeYear)
+  const progress = useQuranProgress(safeYear, user?.id)
+  const surahProg = useSurahProgress(safeYear, user?.id)
 
   const openJuz = (juz: number, surah?: number) => {
     setSelectedJuz(juz)
@@ -87,6 +92,20 @@ export function QuranPage() {
     }
   }, [ramadanYear, surahProg])
 
+  const handleDownloadForOffline = useCallback(async () => {
+    setDownloadingJuz(true)
+    setDownloadProgress(0)
+    try {
+      await precacheAllJuz((current, total) => {
+        setDownloadProgress(Math.round((current / total) * 100))
+      })
+    } catch (err) {
+      console.error('Failed to download:', err)
+    } finally {
+      setDownloadingJuz(false)
+    }
+  }, [])
+
   if (selectedJuz !== null) {
     return (
       <div className="space-y-4">
@@ -109,6 +128,36 @@ export function QuranPage() {
         {autoTrackMsg && (
           <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-2 text-sm font-medium text-primary text-center animate-in fade-in slide-in-from-top-2 duration-300">
             {autoTrackMsg}
+          </div>
+        )}
+
+        {/* Offline indicator */}
+        <OfflineIndicator />
+
+        {/* Download for offline */}
+        {!downloadingJuz ? (
+          <button
+            onClick={handleDownloadForOffline}
+            className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1a.5.5 0 0 1 .5.5v10.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 12.293V1.5A.5.5 0 0 1 8 1z"/>
+              <path d="M1.5 14.5a.5.5 0 0 1 .5-.5h12a.5.5 0 0 1 0 1h-12a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+            Download for offline reading
+          </button>
+        ) : (
+          <div className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between mb-1">
+              <span>Downloading Quran...</span>
+              <span>{downloadProgress}%</span>
+            </div>
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-300" 
+                style={{ width: `${downloadProgress}%` }}
+              />
+            </div>
           </div>
         )}
 
