@@ -29,6 +29,13 @@ export function useQuranReader(juzNumber: number) {
     staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
     placeholderData: () => makeSkeleton(juzNumber),
+    // Always run queryFn (which reads Dexie first) even when browser reports offline
+    networkMode: 'offlineFirst',
+    retry: (failureCount) => {
+      // Don't retry when offline — show error/stale cache immediately
+      if (!navigator.onLine) return false
+      return failureCount < 2
+    },
   })
 
   // Silently prefetch adjacent Juz while the user is reading

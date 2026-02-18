@@ -385,10 +385,21 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
   }
 
   if (error) {
+    const isOffline = !navigator.onLine
     return (
-      <div className="text-center py-12 space-y-2">
+      <div className="text-center py-12 space-y-3">
         <p className="text-red-500 font-medium">Failed to load Juz {juzNumber}</p>
-        <p className="text-sm text-muted-foreground">Check your internet connection and try again.</p>
+        <p className="text-sm text-muted-foreground">
+          {isOffline
+            ? 'You are offline. This Juz needs to be loaded online at least once before it can be read offline.'
+            : 'Check your internet connection and try again.'}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-sm text-primary font-medium hover:underline"
+        >
+          Retry
+        </button>
       </div>
     )
   }
