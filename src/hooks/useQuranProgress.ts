@@ -6,14 +6,15 @@ import { syncLocalProgress, pullServerProgress } from '@/lib/api/quran-progress.
 import { supabase } from '@/lib/supabase/client'
 import type { JuzId, RamadanYear, ProgressStatus } from '@/types'
 
-/** Sync to Supabase then invalidate the leaderboard cache */
-async function triggerSync(invalidateLeaderboard: () => void) {
+/** Sync to Supabase then invalidate and refetch the leaderboard cache */
+async function triggerSync(invalidateLeaderboard: () => void, refetchLeaderboard: () => void) {
   if (!supabase) return
   const { data } = await supabase.auth.getUser()
   if (data.user) {
     try {
       await syncLocalProgress(data.user.id)
       invalidateLeaderboard()
+      refetchLeaderboard()
     } catch (err) {
       console.error('[sync] failed:', err)
     }
@@ -30,6 +31,10 @@ export function useQuranProgress(ramadanYear: RamadanYear, userId?: string | nul
   const queryClient = useQueryClient()
   const invalidateLeaderboard = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ['halaqah-leaderboard'] }),
+    [queryClient],
+  )
+  const refetchLeaderboard = useCallback(
+    () => queryClient.refetchQueries({ queryKey: ['halaqah-leaderboard'] }),
     [queryClient],
   )
 
@@ -85,9 +90,9 @@ export function useQuranProgress(ramadanYear: RamadanYear, userId?: string | nul
           completedAt: to === 'completed' ? now : undefined,
         })
       }
-      triggerSync(invalidateLeaderboard)
+      triggerSync(invalidateLeaderboard, refetchLeaderboard)
     },
-    [ramadanYear, statusMap, invalidateLeaderboard],
+    [ramadanYear, statusMap, invalidateLeaderboard, refetchLeaderboard],
   )
 
   const cycleStatus = useCallback(
@@ -117,9 +122,9 @@ export function useQuranProgress(ramadanYear: RamadanYear, userId?: string | nul
           completedAt: next === 'completed' ? now : undefined,
         })
       }
-      triggerSync(invalidateLeaderboard)
+      triggerSync(invalidateLeaderboard, refetchLeaderboard)
     },
-    [ramadanYear, statusMap, invalidateLeaderboard],
+    [ramadanYear, statusMap, invalidateLeaderboard, refetchLeaderboard],
   )
 
   const completedCount = records.filter((r) => r.status === 'completed').length

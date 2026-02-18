@@ -34,7 +34,8 @@ export function useHalaqah(userId: string | null) {
     queryKey: ['halaqah-leaderboard', halaqah?.id, year],
     queryFn: () => getLeaderboard(halaqah!.id, year, userId!),
     enabled: !!halaqah && !!userId,
-    staleTime: 1000 * 30,
+    staleTime: 0, // Always check for fresh data when component mounts
+    refetchInterval: 1000 * 30, // Poll every 30 seconds when on the page
   })
 
   const createMutation = useMutation({
