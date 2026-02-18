@@ -2,16 +2,19 @@ import { useState } from 'react'
 import { ArabicText } from '@/components/ArabicText'
 import { DhikrCard } from '@/components/DhikrCard'
 import { useAdhkarSession } from '@/hooks/useAdhkarSession'
+import { useAuth } from '@/hooks/useAuth'
 import { CATEGORIES, getAdhkarByCategory } from '@/content/adhkar-data'
 import type { AdhkarCategory } from '@/types'
 
 export function AdhkarPage() {
+  const { user } = useAuth()
   const [activeCategory, setActiveCategory] = useState<AdhkarCategory | null>(null)
 
   if (activeCategory) {
     return (
       <CategoryView
         category={activeCategory}
+        userId={user?.id}
         onBack={() => setActiveCategory(null)}
       />
     )
@@ -47,10 +50,10 @@ export function AdhkarPage() {
   )
 }
 
-function CategoryView({ category, onBack }: { category: AdhkarCategory; onBack: () => void }) {
+function CategoryView({ category, userId, onBack }: { category: AdhkarCategory; userId?: string; onBack: () => void }) {
   const cat = CATEGORIES.find((c) => c.id === category)!
   const adhkar = getAdhkarByCategory(category)
-  const { counts, increment } = useAdhkarSession(category)
+  const { counts, increment } = useAdhkarSession(category, userId)
   const isAnxiety = category === 'anxiety'
 
   const totalDone = adhkar.filter((d) => (counts[d.id] ?? 0) >= d.repetitions).length

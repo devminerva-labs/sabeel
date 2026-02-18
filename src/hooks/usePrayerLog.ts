@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { db } from '@/lib/db'
+import { syncPrayerLog, deletePrayerLog, pullPrayerLogs } from '@/lib/api/prayer-log.api'
 import type { PrayerName, PrayerStatus } from '@/types'
 
 function todayISO(): string {
@@ -8,7 +9,7 @@ function todayISO(): string {
   return new Date().toLocaleDateString('sv-SE')
 }
 
-export function usePrayerLog() {
+export function usePrayerLog(userId?: string | null) {
   const date = todayISO()
 
   const records = useLiveQuery(
@@ -16,6 +17,13 @@ export function usePrayerLog() {
     [date],
     [],
   )
+
+  // Pull from server on mount and when userId changes
+  useEffect(() => {
+    if (userId) {
+      pullPrayerLogs(userId, date).catch(console.error)
+    }
+  }, [userId, date])
 
   const prayers = useMemo(() => {
     const map = new Map<PrayerName, PrayerStatus>()
@@ -40,26 +48,27 @@ export function usePrayerLog() {
         .first()
 
       if (!existing) {
-        await db.prayerLogs.add({
-          date,
-          prayer: name,
-          status: 'prayed',
-          prayedAt: now,
-          updatedAt: now,
-        })
+        const record = { date, prayer: name, status: 'prayed' as PrayerStatus, prayedAt: now, updatedAt: now }
+        await db.prayerLogs.add(record)
+        if (userId) syncPrayerLog(userId, record).catch(console.error)
       } else if (existing.status === 'prayed') {
+        const updatedAt = now
         await db.prayerLogs.update(existing.id!, {
           status: 'missed',
           prayedAt: undefined,
-          updatedAt: now,
+          updatedAt,
           syncedAt: undefined,
         })
+        if (userId) {
+          syncPrayerLog(userId, { date, prayer: name, status: 'missed', updatedAt }).catch(console.error)
+        }
       } else {
         // missed → delete (untracked)
         await db.prayerLogs.delete(existing.id!)
+        if (userId) deletePrayerLog(userId, date, name).catch(console.error)
       }
     },
-    [date],
+    [date, userId],
   )
 
   const prayedCount = records.filter((r) => r.status === 'prayed').length

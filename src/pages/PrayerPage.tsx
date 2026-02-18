@@ -3,6 +3,7 @@ import { PrayerCard } from '@/components/PrayerCard'
 import { usePrayerLog } from '@/hooks/usePrayerLog'
 import { useVoluntaryPrayers } from '@/hooks/useVoluntaryPrayers'
 import { useGeolocation } from '@/hooks/useGeolocation'
+import { useAuth } from '@/hooks/useAuth'
 import {
   getPrayerTimes,
   formatPrayerTime,
@@ -30,7 +31,8 @@ const COMMON_CITIES = [
 ]
 
 export function PrayerPage() {
-  const { getStatus, togglePrayer, prayedCount, date } = usePrayerLog()
+  const { user } = useAuth()
+  const { getStatus, togglePrayer, prayedCount, date } = usePrayerLog(user?.id)
   const { isCompleted, toggle, completedCount } = useVoluntaryPrayers()
   const { status: geoStatus, error: geoError, requestLocation, hasCoords } = useGeolocation()
 

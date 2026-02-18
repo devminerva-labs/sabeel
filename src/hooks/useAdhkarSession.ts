@@ -1,13 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { db } from '@/lib/db'
+import { upsertAdhkarSession, pullAdhkarSessions } from '@/lib/api/adhkar-sessions.api'
 import type { AdhkarCategory, AdhkarCounts } from '@/types'
 
 function todayISO(): string {
   return new Date().toLocaleDateString('sv-SE')
 }
 
-export function useAdhkarSession(category: AdhkarCategory) {
+export function useAdhkarSession(category: AdhkarCategory, userId?: string | null) {
   const sessionDate = todayISO()
 
   const session = useLiveQuery(
@@ -18,6 +19,13 @@ export function useAdhkarSession(category: AdhkarCategory) {
         .first(),
     [sessionDate, category],
   )
+
+  // Pull from server on mount and when userId changes
+  useEffect(() => {
+    if (userId) {
+      pullAdhkarSessions(userId, sessionDate).catch(console.error)
+    }
+  }, [userId, sessionDate])
 
   const counts: AdhkarCounts = session?.counts ?? {}
 
@@ -44,8 +52,12 @@ export function useAdhkarSession(category: AdhkarCategory) {
           counts: newCounts,
         })
       }
+
+      if (userId) {
+        upsertAdhkarSession(userId, now, category, newCounts, false).catch(console.error)
+      }
     },
-    [category],
+    [category, userId],
   )
 
   const markComplete = useCallback(async () => {
@@ -61,8 +73,12 @@ export function useAdhkarSession(category: AdhkarCategory) {
         completedAt: new Date().toISOString(),
         syncedAt: undefined,
       })
+
+      if (userId) {
+        upsertAdhkarSession(userId, now, category, existing.counts, true).catch(console.error)
+      }
     }
-  }, [category])
+  }, [category, userId])
 
   return {
     counts,

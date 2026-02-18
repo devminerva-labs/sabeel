@@ -3,6 +3,8 @@ import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { signInWithEmail, signUpWithEmail, signInWithMagicLink, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, ensureProfile } from '@/lib/api/auth.api'
 import { syncLocalProgress } from '@/lib/api/quran-progress.api'
+import { pullPrayerLogs } from '@/lib/api/prayer-log.api'
+import { pullAdhkarSessions } from '@/lib/api/adhkar-sessions.api'
 
 interface AuthState {
   user: User | null
@@ -31,8 +33,12 @@ export function useAuth() {
 
       if (user) {
         await ensureProfile(user.id, user.email ?? '')
-        // Sync any local progress accumulated before creating an account
+        // Push any local progress accumulated before creating an account
         syncLocalProgress(user.id).catch(console.error)
+        // Pull today's prayers + adhkar so dashboard counts reflect server state
+        const today = new Date().toLocaleDateString('sv-SE')
+        pullPrayerLogs(user.id, today).catch(console.error)
+        pullAdhkarSessions(user.id, today).catch(console.error)
       }
     })
 

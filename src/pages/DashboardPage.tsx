@@ -34,7 +34,7 @@ export function DashboardPage() {
   const { user } = useAuth()
   const { ramadanYear, dayNumber, season } = useRamadanContext()
   const { canInstall, install } = usePWAInstall()
-  const { prayedCount } = usePrayerLog()
+  const { prayedCount } = usePrayerLog(user?.id)
   const { completedCount: adhkarDone, total: adhkarTotal } = useAdhkarTodayCount()
   const lastBookmark = useLastReadingBookmark()
 
