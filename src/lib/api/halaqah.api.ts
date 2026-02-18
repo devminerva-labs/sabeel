@@ -141,13 +141,17 @@ export async function getLeaderboard(
     },
   )
 
+  // Handle JSONB return type
   if (!rpcError && rpcData) {
-    return (rpcData as Array<{
+    // Parse JSONB result
+    const parsed = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData
+    const entries = Array.isArray(parsed) ? parsed : []
+    return entries.map((r: {
       nickname: string
       juz_completed: number
       juz_in_progress: number
       is_me: boolean
-    }>).map((r) => ({
+    }) => ({
       nickname: r.nickname,
       juzCompleted: r.juz_completed,
       juzInProgress: r.juz_in_progress,
@@ -156,20 +160,30 @@ export async function getLeaderboard(
   }
 
   // Fallback: client-side join (for when RPC hasn't been deployed yet)
-  const { data: members } = await supabase
+  console.log('RPC failed, using fallback:', rpcError)
+  
+  const { data: members, error: membersError } = await supabase
     .from('halaqah_members')
     .select('user_id, nickname')
     .eq('halaqah_id', halaqahId)
+
+  if (membersError) {
+    console.error('Error fetching members:', membersError)
+  }
 
   if (!members || members.length === 0) return []
 
   const memberIds = members.map((m) => m.user_id)
 
-  const { data: progress } = await supabase
+  const { data: progress, error: progressError } = await supabase
     .from('quran_progress')
     .select('user_id, status')
     .eq('ramadan_year', ramadanYear)
     .in('user_id', memberIds)
+
+  if (progressError) {
+    console.error('Error fetching progress:', progressError)
+  }
 
   const progressList = progress ?? []
 
