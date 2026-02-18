@@ -1,16 +1,22 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { db } from '@/lib/db'
 import { syncLocalProgress } from '@/lib/api/quran-progress.api'
 import { supabase } from '@/lib/supabase/client'
 import type { JuzId, RamadanYear, ProgressStatus } from '@/types'
 
-/** Fire-and-forget sync to Supabase if user is logged in */
-async function triggerSync() {
+/** Sync to Supabase then invalidate the leaderboard cache */
+async function triggerSync(invalidateLeaderboard: () => void) {
   if (!supabase) return
   const { data } = await supabase.auth.getUser()
   if (data.user) {
-    syncLocalProgress(data.user.id).catch(console.error)
+    try {
+      await syncLocalProgress(data.user.id)
+      invalidateLeaderboard()
+    } catch (err) {
+      console.error('[sync] failed:', err)
+    }
   }
 }
 
@@ -21,6 +27,12 @@ const NEXT_STATUS: Record<ProgressStatus, ProgressStatus> = {
 }
 
 export function useQuranProgress(ramadanYear: RamadanYear) {
+  const queryClient = useQueryClient()
+  const invalidateLeaderboard = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['halaqah-leaderboard'] }),
+    [queryClient],
+  )
+
   const records = useLiveQuery(
     () => db.quranProgress.where({ ramadanYear }).toArray(),
     [ramadanYear],
@@ -66,9 +78,9 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
           completedAt: to === 'completed' ? now : undefined,
         })
       }
-      triggerSync()
+      triggerSync(invalidateLeaderboard)
     },
-    [ramadanYear, statusMap],
+    [ramadanYear, statusMap, invalidateLeaderboard],
   )
 
   const cycleStatus = useCallback(
@@ -98,9 +110,9 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
           completedAt: next === 'completed' ? now : undefined,
         })
       }
-      triggerSync()
+      triggerSync(invalidateLeaderboard)
     },
-    [ramadanYear, statusMap],
+    [ramadanYear, statusMap, invalidateLeaderboard],
   )
 
   const completedCount = records.filter((r) => r.status === 'completed').length
