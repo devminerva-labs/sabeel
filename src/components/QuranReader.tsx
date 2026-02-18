@@ -248,6 +248,8 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null)
   const [selectedSurahName, setSelectedSurahName] = useState<string | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(0)
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null)
+  const [slideKey, setSlideKey] = useState(0)
   const { playingSurah, currentAyah, isLoading: audioLoading, toggle: toggleSurahAudio } = useSurahAudio()
   const startCalledRef = useRef(false)
   const finishCalledRef = useRef(false)
@@ -328,12 +330,15 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     }
   }, [currentPage, pages, surahGroups, onSurahRead])
 
-  // Navigate pages
+  // Navigate pages with slide direction
   const goToPage = useCallback((page: number) => {
-    setCurrentPage(Math.max(0, Math.min(page, totalPages - 1)))
-    // Scroll to top of the reader
+    const clamped = Math.max(0, Math.min(page, totalPages - 1))
+    if (clamped === currentPage) return
+    setSlideDirection(clamped > currentPage ? 'left' : 'right')
+    setSlideKey((k) => k + 1)
+    setCurrentPage(clamped)
     pageContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [totalPages])
+  }, [totalPages, currentPage])
 
   const nextPage = useCallback(() => goToPage(currentPage + 1), [currentPage, goToPage])
   const prevPage = useCallback(() => goToPage(currentPage - 1), [currentPage, goToPage])
@@ -355,7 +360,7 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
 
     // Only trigger if horizontal swipe > 50px and more horizontal than vertical
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      // Swipe left = next page (RTL: right = next, but we follow standard mobile convention)
+      // Swipe left = next page, swipe right = previous page
       if (dx < 0) nextPage()
       else prevPage()
     }
@@ -430,112 +435,127 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     return !prevPageAyahs.some((a) => a.surah === group.surah)
   }
 
+  // Determine slide animation class
+  const slideClass = slideDirection === 'left'
+    ? 'mushaf-slide-enter-left'
+    : slideDirection === 'right'
+      ? 'mushaf-slide-enter-right'
+      : ''
+
   return (
     <>
-      {/* Page indicator */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-        <span>Tap verse marker for translation</span>
+      {/* Hint */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2 px-1">
+        <span>Swipe or tap arrows to turn pages</span>
         <span>Page {currentPage + 1} of {totalPages}</span>
       </div>
 
       {/* Page content with swipe */}
       <div
         ref={pageContainerRef}
-        className="mushaf-page min-h-[60vh] relative"
+        className="mushaf-page-slider"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {pageGroups.map((group) => (
-          <div key={`${group.surah}-${group.ayahs[0]?.ayah}`}>
-            {/* Surah header — only if the surah starts on this page */}
-            {group.name && surahStartsOnPage(group) && (
-              <div className="surah-header-ornament">
-                <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-arabic)' }} lang="ar">
-                  {group.name.arabic}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-0.5">{group.name.english}</p>
-                <button
-                  onClick={() => {
-                    // Get all verses for this surah across all pages
-                    const fullGroup = surahGroups.find((g) => g.surah === group.surah)
-                    const verses = (fullGroup?.ayahs ?? group.ayahs)
-                      .filter((a) => !a.isBismillah && a.ayah > 0)
-                      .map((a) => ({ surah: a.surah, ayah: a.ayah }))
-                    toggleSurahAudio(group.surah, verses)
-                  }}
-                  aria-label={playingSurah === group.surah ? `Stop playing ${group.name.english}` : `Play ${group.name.english}`}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-accent text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
-                >
-                  {playingSurah === group.surah ? (
-                    <>
-                      {audioLoading ? (
-                        <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin block" />
+        <div className="mushaf-page min-h-[60vh]">
+          <div key={slideKey} className={slideClass}>
+            {pageGroups.map((group) => (
+              <div key={`${group.surah}-${group.ayahs[0]?.ayah}`}>
+                {/* Surah header — only if the surah starts on this page */}
+                {group.name && surahStartsOnPage(group) && (
+                  <div className="surah-header-ornament">
+                    <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-arabic)' }} lang="ar">
+                      {group.name.arabic}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">{group.name.english}</p>
+                    <button
+                      onClick={() => {
+                        const fullGroup = surahGroups.find((g) => g.surah === group.surah)
+                        const verses = (fullGroup?.ayahs ?? group.ayahs)
+                          .filter((a) => !a.isBismillah && a.ayah > 0)
+                          .map((a) => ({ surah: a.surah, ayah: a.ayah }))
+                        toggleSurahAudio(group.surah, verses)
+                      }}
+                      aria-label={playingSurah === group.surah ? `Stop playing ${group.name.english}` : `Play ${group.name.english}`}
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-accent text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      {playingSurah === group.surah ? (
+                        <>
+                          {audioLoading ? (
+                            <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin block" />
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                              <rect x="3" y="2" width="4" height="12" rx="1" />
+                              <rect x="9" y="2" width="4" height="12" rx="1" />
+                            </svg>
+                          )}
+                          Playing · Ayah {currentAyah}
+                        </>
                       ) : (
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                          <rect x="3" y="2" width="4" height="12" rx="1" />
-                          <rect x="9" y="2" width="4" height="12" rx="1" />
-                        </svg>
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                            <path d="M3 2.5l10 5.5-10 5.5V2.5z" />
+                          </svg>
+                          Play Surah
+                        </>
                       )}
-                      Playing · Ayah {currentAyah}
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                        <path d="M3 2.5l10 5.5-10 5.5V2.5z" />
-                      </svg>
-                      Play Surah
-                    </>
-                  )}
-                </button>
+                    </button>
+                  </div>
+                )}
+
+                {/* Continuous flowing text for this group on this page */}
+                <p className="mushaf-text" lang="ar">
+                  {group.ayahs.map((ayah) => {
+                    if (ayah.isBismillah) {
+                      return (
+                        <span key={`bismillah-${ayah.surah}`} className="mushaf-bismillah">
+                          {ayah.arabic}
+                        </span>
+                      )
+                    }
+
+                    return (
+                      <span key={`${ayah.surah}-${ayah.ayah}`}>
+                        {ayah.arabic}{' '}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="verse-marker"
+                          aria-label={`Verse ${ayah.ayah} of ${group.name?.english ?? `Surah ${ayah.surah}`}. Tap for details.`}
+                          onClick={() => {
+                            setSelectedAyah(ayah)
+                            setSelectedSurahName(group.name?.english)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setSelectedAyah(ayah)
+                              setSelectedSurahName(group.name?.english)
+                            }
+                          }}
+                        >
+                          {toArabicNumeral(ayah.ayah)}
+                        </span>{' '}
+                      </span>
+                    )
+                  })}
+                </p>
+              </div>
+            ))}
+
+            {/* Last page indicator */}
+            {currentPage === totalPages - 1 && (
+              <div className="text-center py-4 text-sm text-muted-foreground">
+                End of Juz {juzNumber}
               </div>
             )}
-
-            {/* Continuous flowing text for this group on this page */}
-            <p className="mushaf-text" lang="ar">
-              {group.ayahs.map((ayah) => {
-                if (ayah.isBismillah) {
-                  return (
-                    <span key={`bismillah-${ayah.surah}`} className="mushaf-bismillah">
-                      {ayah.arabic}
-                    </span>
-                  )
-                }
-
-                return (
-                  <span key={`${ayah.surah}-${ayah.ayah}`}>
-                    {ayah.arabic}{' '}
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="verse-marker"
-                      aria-label={`Verse ${ayah.ayah} of ${group.name?.english ?? `Surah ${ayah.surah}`}. Tap for details.`}
-                      onClick={() => {
-                        setSelectedAyah(ayah)
-                        setSelectedSurahName(group.name?.english)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          setSelectedAyah(ayah)
-                          setSelectedSurahName(group.name?.english)
-                        }
-                      }}
-                    >
-                      {toArabicNumeral(ayah.ayah)}
-                    </span>{' '}
-                  </span>
-                )
-              })}
-            </p>
           </div>
-        ))}
 
-        {/* Last page indicator */}
-        {currentPage === totalPages - 1 && (
-          <div className="text-center py-4 text-sm text-muted-foreground">
-            End of Juz {juzNumber}
+          {/* Page number footer */}
+          <div className="mushaf-page-footer">
+            {toArabicNumeral(currentPage + 1)}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Navigation controls */}
@@ -553,7 +573,7 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
         </button>
 
         <span className="text-sm font-medium text-muted-foreground tabular-nums">
-          {currentPage + 1} / {totalPages}
+          {toArabicNumeral(currentPage + 1)} / {toArabicNumeral(totalPages)}
         </span>
 
         <button
