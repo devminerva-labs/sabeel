@@ -2,8 +2,6 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { AdhkarPage } from '@/pages/AdhkarPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
@@ -31,6 +29,12 @@ function lazyWithReload<T extends { default: React.ComponentType }>(
   )
 }
 
+const DashboardPage = lazyWithReload(() =>
+  import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+)
+const AdhkarPage = lazyWithReload(() =>
+  import('@/pages/AdhkarPage').then((m) => ({ default: m.AdhkarPage })),
+)
 const HalaqahPage = lazyWithReload(() =>
   import('@/pages/HalaqahPage').then((m) => ({ default: m.HalaqahPage })),
 )
@@ -83,9 +87,11 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: (
-          <ErrorBoundary level="feature">
-            <DashboardPage />
-          </ErrorBoundary>
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <DashboardPage />
+            </ErrorBoundary>
+          </Suspense>
         ),
       },
       {
@@ -111,9 +117,11 @@ export const router = createBrowserRouter([
       {
         path: 'adhkar',
         element: (
-          <ErrorBoundary level="feature">
-            <AdhkarPage />
-          </ErrorBoundary>
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <AdhkarPage />
+            </ErrorBoundary>
+          </Suspense>
         ),
       },
       {

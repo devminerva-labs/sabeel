@@ -35,6 +35,7 @@ export function useHalaqah(userId: string | null, selectedHalaqahId?: string | n
     enabled: !!selectedHalaqahId && !!userId,
     staleTime: 0,
     refetchInterval: 1000 * 30,
+    refetchIntervalInBackground: false,
   })
 
   const createMutation = useMutation({
