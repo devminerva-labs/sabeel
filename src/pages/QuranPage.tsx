@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { QuranReader } from '@/components/QuranReader'
 import { SurahList } from '@/components/SurahList'
@@ -7,6 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useSurahProgress } from '@/hooks/useSurahProgress'
+import { useLastReadingBookmark } from '@/hooks/useLastReadingBookmark'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
 import { useAuth } from '@/hooks/useAuth'
 import { calculateCatchUp } from '@/lib/catch-up'
@@ -47,6 +49,9 @@ export function QuranPage() {
   const [downloadingJuz, setDownloadingJuz] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
 
+  const lastBookmark = useLastReadingBookmark()
+  const location = useLocation()
+
   const { user } = useAuth()
   // We need a stable RamadanYear for the hook — use 0 as placeholder when outside Ramadan
   // The hook will just return empty data for a non-existent year
@@ -59,6 +64,13 @@ export function QuranPage() {
     setTargetSurah(surah)
     setAutoTrackMsg(null)
   }
+
+  useEffect(() => {
+    const resumeJuz = (location.state as { resumeJuz?: number } | null)?.resumeJuz
+    if (resumeJuz) {
+      openJuz(resumeJuz)
+    }
+  }, []) // only on mount
 
   // Auto-tracking callbacks for the reader
   const handleStartReading = useCallback(() => {
@@ -180,6 +192,7 @@ export function QuranPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Quran</h1>
         </div>
+        <ContinueReadingCard bookmark={lastBookmark} onResume={openJuz} />
         <ViewToggle view={view} onChange={setView} />
         {view === 'juz' ? (
           <>
@@ -202,6 +215,7 @@ export function QuranPage() {
       view={view}
       onViewChange={setView}
       surahProgress={surahProg}
+      lastBookmark={lastBookmark}
     />
   )
 }
@@ -214,6 +228,7 @@ function QuranGridView({
   view,
   onViewChange,
   surahProgress,
+  lastBookmark,
 }: {
   ramadanYear: import('@/types').RamadanYear
   dayNumber: number | null
@@ -222,6 +237,7 @@ function QuranGridView({
   view: QuranView
   onViewChange: (v: QuranView) => void
   surahProgress: ReturnType<typeof useSurahProgress>
+  lastBookmark: import('@/lib/db').ReadingBookmarkRecord | undefined
 }) {
   const { completedCount, totalJuz } = useQuranProgress(ramadanYear)
   const catchUp = dayNumber ? calculateCatchUp(completedCount, dayNumber, totalDays) : null
@@ -238,6 +254,7 @@ function QuranGridView({
         <ProgressRing completed={completedCount} total={totalJuz} size={72} strokeWidth={6} />
       </div>
 
+      <ContinueReadingCard bookmark={lastBookmark} onResume={onSelectJuz} />
       <ViewToggle view={view} onChange={onViewChange} />
 
       {catchUp && view === 'juz' && (
@@ -357,6 +374,34 @@ function QuranGridWithReader({
         )
       })}
     </div>
+  )
+}
+
+function ContinueReadingCard({
+  bookmark,
+  onResume,
+}: {
+  bookmark: import('@/lib/db').ReadingBookmarkRecord | undefined
+  onResume: (juz: number) => void
+}) {
+  if (!bookmark) return null
+  const juz = JUZ_DATA.find((j) => j.id === bookmark.juzNumber)
+  return (
+    <button
+      onClick={() => onResume(bookmark.juzNumber)}
+      className="w-full rounded-xl border border-primary/20 bg-primary/5 p-4 text-left hover:bg-primary/10 transition-colors"
+    >
+      <p className="text-xs text-muted-foreground uppercase tracking-wide">Continue Reading</p>
+      <p className="text-base font-semibold text-foreground mt-0.5">
+        Juz {bookmark.juzNumber}
+        {juz && (
+          <span className="text-sm font-normal text-muted-foreground ml-2">{juz.name}</span>
+        )}
+      </p>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        Page {bookmark.page + 1} · {juz?.startSurah}
+      </p>
+    </button>
   )
 }
 

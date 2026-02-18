@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useLastReadingBookmark } from '@/hooks/useLastReadingBookmark'
+import { JUZ_DATA } from '@/content/juz-data'
 import { ArabicText } from '@/components/ArabicText'
 import { ProgressRing } from '@/components/ProgressRing'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
@@ -34,6 +36,7 @@ export function DashboardPage() {
   const { canInstall, install } = usePWAInstall()
   const { prayedCount } = usePrayerLog()
   const { completedCount: adhkarDone, total: adhkarTotal } = useAdhkarTodayCount()
+  const lastBookmark = useLastReadingBookmark()
 
   return (
     <div className="space-y-6">
@@ -91,6 +94,29 @@ export function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Continue Reading */}
+      {lastBookmark && (() => {
+        const juz = JUZ_DATA.find((j) => j.id === lastBookmark.juzNumber)
+        return (
+          <Link
+            to="/app/quran"
+            state={{ resumeJuz: lastBookmark.juzNumber }}
+            className="w-full rounded-xl border border-primary/20 bg-primary/5 p-4 text-left hover:bg-primary/10 transition-colors block"
+          >
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Continue Reading</p>
+            <p className="text-base font-semibold text-foreground mt-0.5">
+              Juz {lastBookmark.juzNumber}
+              {juz && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">{juz.name}</span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Page {lastBookmark.page + 1} · {juz?.startSurah}
+            </p>
+          </Link>
+        )
+      })()}
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
