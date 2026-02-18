@@ -4,7 +4,7 @@
 -- Returns aggregated juz progress for all members of a halaqah.
 -- ================================================================
 
-CREATE OR REPLACE FUNCTION get_halaqah_leaderboard(
+CREATE OR REPLACE FUNCTION public.get_halaqah_leaderboard(
   p_halaqah_id UUID,
   p_ramadan_year SMALLINT,
   p_my_user_id UUID
@@ -33,3 +33,6 @@ AS $$
   GROUP BY m.nickname, m.user_id
   ORDER BY juz_completed DESC, juz_in_progress DESC;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.get_halaqah_leaderboard(UUID, SMALLINT, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_halaqah_leaderboard(UUID, SMALLINT, UUID) TO anon;
