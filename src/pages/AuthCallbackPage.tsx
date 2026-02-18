@@ -17,7 +17,7 @@ export function AuthCallbackPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
         subscription.unsubscribe()
-        navigate('/app/halaqah', { replace: true })
+        navigate('/app', { replace: true })
       }
     })
 
@@ -25,7 +25,7 @@ export function AuthCallbackPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         subscription.unsubscribe()
-        navigate('/app/halaqah', { replace: true })
+        navigate('/app', { replace: true })
       }
     })
 
