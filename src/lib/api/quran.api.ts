@@ -3,7 +3,7 @@ import { db, type QuranCacheRecord } from '@/lib/db'
 const BASE_URL = 'https://api.quran.com/api/v4'
 
 // Bump this when switching API editions or translation sources to invalidate old cache
-const CACHE_SCHEMA_VERSION = 3
+const CACHE_SCHEMA_VERSION = 4
 
 // Bismillah text as returned by the Quran.com API (from Surah 1:1)
 // Surah 1 (Al-Fatiha): Bismillah IS verse 1 — kept as-is
@@ -28,19 +28,30 @@ function stripHtml(text: string): string {
 }
 
 export async function fetchJuzFromAPI(juzNumber: number): Promise<QuranCacheRecord['ayahs']> {
-  const res = await fetch(
-    `${BASE_URL}/verses/by_juz/${juzNumber}?language=en&translations=20&fields=text_uthmani&per_page=300&page=1`
-  )
+  const allVerses: QuranComVerse[] = []
+  let page = 1
+  let totalPages = 1
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch Juz ${juzNumber}`)
+  // Fetch all pages (Juz 30 has 564 ayahs which exceeds the 300 per_page limit)
+  while (page <= totalPages) {
+    const res = await fetch(
+      `${BASE_URL}/verses/by_juz/${juzNumber}?language=en&translations=20&fields=text_uthmani&per_page=300&page=${page}`
+    )
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch Juz ${juzNumber}`)
+    }
+
+    const data: QuranComResponse = await res.json()
+    allVerses.push(...data.verses)
+    totalPages = data.pagination.total_pages
+    page++
   }
 
-  const data: QuranComResponse = await res.json()
   const result: QuranCacheRecord['ayahs'] = []
   let currentSurah = 0
 
-  for (const v of data.verses) {
+  for (const v of allVerses) {
     const [surahStr = '0', ayahStr = '0'] = v.verse_key.split(':')
     const surah = parseInt(surahStr, 10)
     const ayah = parseInt(ayahStr, 10)

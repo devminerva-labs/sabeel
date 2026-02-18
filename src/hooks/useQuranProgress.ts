@@ -1,7 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback } from 'react'
 import { db } from '@/lib/db'
+import { syncLocalProgress } from '@/lib/api/quran-progress.api'
+import { supabase } from '@/lib/supabase/client'
 import type { JuzId, RamadanYear, ProgressStatus } from '@/types'
+
+/** Fire-and-forget sync to Supabase if user is logged in */
+async function triggerSync() {
+  if (!supabase) return
+  const { data } = await supabase.auth.getUser()
+  if (data.user) {
+    syncLocalProgress(data.user.id).catch(console.error)
+  }
+}
 
 const NEXT_STATUS: Record<ProgressStatus, ProgressStatus> = {
   not_started: 'in_progress',
@@ -55,6 +66,7 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
           completedAt: to === 'completed' ? now : undefined,
         })
       }
+      triggerSync()
     },
     [ramadanYear, statusMap],
   )
@@ -86,6 +98,7 @@ export function useQuranProgress(ramadanYear: RamadanYear) {
           completedAt: next === 'completed' ? now : undefined,
         })
       }
+      triggerSync()
     },
     [ramadanYear, statusMap],
   )
