@@ -37,6 +37,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Exclude auth callback from service worker navigation handling
+        // Safari rejects cached redirect responses from service workers
+        navigateFallbackDenylist: [/^\/auth\/callback/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
