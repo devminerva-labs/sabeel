@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'fonts/*.woff2', 'icons/*.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'og-image.png', 'fonts/*.woff2', 'icons/*.png'],
       manifest: {
         name: 'Sabeel - Ramadan Companion',
         short_name: 'Sabeel',
@@ -48,6 +48,14 @@ export default defineConfig({
               cacheName: 'sabeel-api',
               networkTimeoutSeconds: 3,
               expiration: { maxAgeSeconds: 86400 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/api\.quran\.com\/api\/v4\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'quran-api',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],

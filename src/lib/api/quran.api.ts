@@ -77,13 +77,18 @@ export async function getJuzCached(juzNumber: number): Promise<QuranCacheRecord[
   const cached = await db.quranCache.get(juzNumber)
   if (cached && cached.schemaVersion === CACHE_SCHEMA_VERSION) return cached.ayahs
 
-  const ayahs = await fetchJuzFromAPI(juzNumber)
-  await db.quranCache.put({
-    juzNumber,
-    ayahs,
-    fetchedAt: new Date().toISOString(),
-    schemaVersion: CACHE_SCHEMA_VERSION,
-  })
-
-  return ayahs
+  try {
+    const ayahs = await fetchJuzFromAPI(juzNumber)
+    await db.quranCache.put({
+      juzNumber,
+      ayahs,
+      fetchedAt: new Date().toISOString(),
+      schemaVersion: CACHE_SCHEMA_VERSION,
+    })
+    return ayahs
+  } catch (err) {
+    // Offline or network error — return stale cache if available
+    if (cached && cached.ayahs.length > 0) return cached.ayahs
+    throw err
+  }
 }

@@ -6,9 +6,8 @@ import { useHalaqah } from '@/hooks/useHalaqah'
 
 // ── Leaderboard ──────────────────────────────────────────────
 
-function Leaderboard() {
-  const { user } = useAuth()
-  const { halaqah, myNickname, leaderboard, isLoadingLeaderboard, leaveHalaqah } = useHalaqah(user?.id ?? null)
+function Leaderboard({ userId }: { userId: string }) {
+  const { halaqah, myNickname, leaderboard, isLoadingLeaderboard, leaveHalaqah } = useHalaqah(userId)
   const [copied, setCopied] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
@@ -116,9 +115,8 @@ function Leaderboard() {
 
 // ── Create / Join form ────────────────────────────────────────
 
-function CreateOrJoin() {
-  const { user } = useAuth()
-  const { createHalaqah, joinHalaqah, createError, joinError } = useHalaqah(user?.id ?? null)
+function CreateOrJoin({ userId }: { userId: string }) {
+  const { createHalaqah, joinHalaqah, createError, joinError } = useHalaqah(userId)
 
   const [mode, setMode] = useState<'create' | 'join'>('join')
   const [name, setName] = useState('')
@@ -139,6 +137,8 @@ function CreateOrJoin() {
         const { error: err } = await joinHalaqah({ inviteCode, nickname })
         if (err) setError(err)
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -290,6 +290,6 @@ function HalaqahContent({ userId }: { userId: string }) {
     )
   }
 
-  if (!halaqah) return <CreateOrJoin />
-  return <Leaderboard />
+  if (!halaqah) return <CreateOrJoin userId={userId} />
+  return <Leaderboard userId={userId} />
 }

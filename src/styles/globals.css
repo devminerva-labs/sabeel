@@ -114,7 +114,7 @@ body {
 /* Continuous flowing Arabic text */
 .mushaf-text {
   font-family: var(--font-arabic);
-  font-size: 1.625rem;
+  font-size: 2rem;
   direction: rtl;
   text-align: justify;
   line-height: 3;
@@ -126,11 +126,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border: 1.5px solid var(--color-accent);
   border-radius: 50%;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-family: var(--font-arabic-ui);
   color: var(--color-accent);
   vertical-align: middle;

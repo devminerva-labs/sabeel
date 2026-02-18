@@ -36,7 +36,22 @@ export function useAuth() {
       }
     })
 
-    return () => subscription.unsubscribe()
+    // Re-check session when PWA regains focus (user returning from OAuth in browser)
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        supabase!.auth.getSession().then(({ data }) => {
+          if (data.session) {
+            setState({ user: data.session.user, session: data.session, isLoading: false })
+          }
+        })
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   async function signIn(email: string, password: string) {

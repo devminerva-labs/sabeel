@@ -232,14 +232,14 @@ interface SurahGroup {
   ayahs: Ayah[]
 }
 
+// Number of verses per page (approximate — surah headers may add visual weight)
+const VERSES_PER_PAGE = 15
+
 interface QuranReaderProps {
   juzNumber: number
   targetSurah?: number
-  /** Called once when the reader mounts with content — signals user started reading this juz */
   onStartReading?: () => void
-  /** Called when the user scrolls to the end of the juz — signals juz is fully read */
   onFinishReading?: () => void
-  /** Called when the user scrolls past a surah — signals that surah was read */
   onSurahRead?: (surahNumber: number) => void
 }
 
@@ -247,67 +247,12 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
   const { ayahs, isLoading, error } = useQuranReader(juzNumber)
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null)
   const [selectedSurahName, setSelectedSurahName] = useState<string | undefined>(undefined)
-  const surahHeaderRefs = useRef<Map<number, HTMLDivElement>>(new Map())
-  const surahEndRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const [currentPage, setCurrentPage] = useState(0)
   const { playingSurah, currentAyah, isLoading: audioLoading, toggle: toggleSurahAudio } = useSurahAudio()
   const startCalledRef = useRef(false)
   const finishCalledRef = useRef(false)
-  const endMarkerRef = useRef<HTMLDivElement>(null)
-  const surahsReadRef = useRef<Set<number>>(new Set())
-
-  // Auto-track: mark juz as "in_progress" when content loads
-  useEffect(() => {
-    if (!isLoading && ayahs.length > 0 && !startCalledRef.current) {
-      startCalledRef.current = true
-      onStartReading?.()
-    }
-  }, [isLoading, ayahs.length, onStartReading])
-
-  // Auto-track: mark juz as "completed" when user scrolls to bottom
-  useEffect(() => {
-    const marker = endMarkerRef.current
-    if (!marker || isLoading || ayahs.length === 0) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting && !finishCalledRef.current) {
-          finishCalledRef.current = true
-          onFinishReading?.()
-        }
-      },
-      { threshold: 0.5 },
-    )
-    observer.observe(marker)
-    return () => observer.disconnect()
-  }, [isLoading, ayahs.length, onFinishReading])
-
-  // Auto-track: mark each surah as read when user scrolls past its end
-  useEffect(() => {
-    if (isLoading || ayahs.length === 0 || !onSurahRead) return
-
-    const refs = surahEndRefs.current
-    if (refs.size === 0) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const surahNum = Number(entry.target.getAttribute('data-surah'))
-            if (surahNum && !surahsReadRef.current.has(surahNum)) {
-              surahsReadRef.current.add(surahNum)
-              onSurahRead(surahNum)
-            }
-          }
-        }
-      },
-      { threshold: 0.5 },
-    )
-
-    for (const el of refs.values()) {
-      observer.observe(el)
-    }
-    return () => observer.disconnect()
-  }, [isLoading, ayahs.length, onSurahRead])
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const pageContainerRef = useRef<HTMLDivElement>(null)
 
   // Group ayahs by surah
   const surahGroups = useMemo(() => {
@@ -329,20 +274,107 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     return groups
   }, [ayahs])
 
-  // Scroll to target surah once data loads
+  // Split into pages — each page is a slice of contiguous ayahs
+  const pages = useMemo(() => {
+    if (ayahs.length === 0) return []
+    const result: Ayah[][] = []
+    for (let i = 0; i < ayahs.length; i += VERSES_PER_PAGE) {
+      result.push(ayahs.slice(i, i + VERSES_PER_PAGE))
+    }
+    return result
+  }, [ayahs])
+
+  const totalPages = pages.length
+
+  // Find page containing target surah
   useEffect(() => {
-    if (!isLoading && targetSurah && ayahs.length > 0) {
-      const el = surahHeaderRefs.current.get(targetSurah)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!targetSurah || pages.length === 0) return
+    const pageIdx = pages.findIndex((page) =>
+      page.some((a) => a.surah === targetSurah && a.ayah <= 1),
+    )
+    if (pageIdx >= 0) setCurrentPage(pageIdx)
+  }, [targetSurah, pages])
+
+  // Auto-track: mark juz as "in_progress" when content loads
+  useEffect(() => {
+    if (!isLoading && ayahs.length > 0 && !startCalledRef.current) {
+      startCalledRef.current = true
+      onStartReading?.()
+    }
+  }, [isLoading, ayahs.length, onStartReading])
+
+  // Auto-track: mark juz as "completed" when user reaches last page
+  useEffect(() => {
+    if (totalPages > 0 && currentPage === totalPages - 1 && !finishCalledRef.current) {
+      finishCalledRef.current = true
+      onFinishReading?.()
+    }
+  }, [currentPage, totalPages, onFinishReading])
+
+  // Auto-track surahs: when a page is viewed, check if any surah ends on this or previous pages
+  useEffect(() => {
+    if (!onSurahRead || pages.length === 0) return
+    // Collect all ayahs up to and including current page
+    const seenAyahs = pages.slice(0, currentPage + 1).flat()
+    // Find surahs whose last ayah in this juz has been shown
+    const surahsOnPage = new Set(seenAyahs.map((a) => a.surah))
+    for (const surahNum of surahsOnPage) {
+      const group = surahGroups.find((g) => g.surah === surahNum)
+      if (!group) continue
+      const lastAyah = group.ayahs[group.ayahs.length - 1]
+      if (lastAyah && seenAyahs.includes(lastAyah)) {
+        onSurahRead(surahNum)
       }
     }
-  }, [isLoading, targetSurah, ayahs.length])
+  }, [currentPage, pages, surahGroups, onSurahRead])
+
+  // Navigate pages
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(0, Math.min(page, totalPages - 1)))
+    // Scroll to top of the reader
+    pageContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [totalPages])
+
+  const nextPage = useCallback(() => goToPage(currentPage + 1), [currentPage, goToPage])
+  const prevPage = useCallback(() => goToPage(currentPage - 1), [currentPage, goToPage])
+
+  // Touch swipe handling
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    if (touch) touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    const touch = e.changedTouches[0]
+    if (!touch) return
+
+    const dx = touch.clientX - touchStartRef.current.x
+    const dy = touch.clientY - touchStartRef.current.y
+    touchStartRef.current = null
+
+    // Only trigger if horizontal swipe > 50px and more horizontal than vertical
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      // Swipe left = next page (RTL: right = next, but we follow standard mobile convention)
+      if (dx < 0) nextPage()
+      else prevPage()
+    }
+  }, [nextPage, prevPage])
+
+  // Keyboard navigation
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextPage()
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevPage()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [nextPage, prevPage])
 
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse px-1" aria-label="Loading Quran verses">
-        {Array.from({ length: 12 }).map((_, i) => (
+        {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="space-y-2 py-2">
             <div className="h-8 rounded bg-muted w-full" />
             <div className="h-8 rounded bg-muted" style={{ width: `${60 + (i % 5) * 8}%` }} />
@@ -361,25 +393,61 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     )
   }
 
+  // Get current page ayahs and group them by surah for rendering
+  const pageAyahs = pages[currentPage] ?? []
+  const pageGroups: SurahGroup[] = []
+  let currentGroup: SurahGroup | null = null
+  for (const ayah of pageAyahs) {
+    if (!currentGroup || ayah.surah !== currentGroup.surah) {
+      currentGroup = { surah: ayah.surah, name: SURAH_NAMES[ayah.surah], ayahs: [] }
+      pageGroups.push(currentGroup)
+    }
+    currentGroup.ayahs.push(ayah)
+  }
+
+  // Check if a surah header should show (first ayah of surah on this page, or ayah 0/1)
+  const surahStartsOnPage = (group: SurahGroup): boolean => {
+    const firstAyah = group.ayahs[0]
+    if (!firstAyah) return false
+    // Show header if the first verse of this group is the first real verse (ayah 0 or 1)
+    // or if it's a bismillah
+    if (firstAyah.isBismillah || firstAyah.ayah <= 1) return true
+    // Also show if it's the first occurrence of this surah in the entire juz
+    // and the previous page doesn't contain this surah
+    if (currentPage === 0) return true
+    const prevPageAyahs = pages[currentPage - 1] ?? []
+    return !prevPageAyahs.some((a) => a.surah === group.surah)
+  }
+
   return (
     <>
-      <p className="text-xs text-muted-foreground text-center mb-3">Tap any verse marker for translation & tafsir</p>
-      <div className="mushaf-page">
-        {surahGroups.map((group) => (
-          <div key={group.surah}>
-            {/* Ornamental surah header */}
-            {group.name && (
-              <div
-                ref={(el) => { if (el) surahHeaderRefs.current.set(group.surah, el) }}
-                className="surah-header-ornament"
-              >
+      {/* Page indicator */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+        <span>Tap verse marker for translation</span>
+        <span>Page {currentPage + 1} of {totalPages}</span>
+      </div>
+
+      {/* Page content with swipe */}
+      <div
+        ref={pageContainerRef}
+        className="mushaf-page min-h-[60vh] relative"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {pageGroups.map((group) => (
+          <div key={`${group.surah}-${group.ayahs[0]?.ayah}`}>
+            {/* Surah header — only if the surah starts on this page */}
+            {group.name && surahStartsOnPage(group) && (
+              <div className="surah-header-ornament">
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-arabic)' }} lang="ar">
                   {group.name.arabic}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-0.5">{group.name.english}</p>
                 <button
                   onClick={() => {
-                    const verses = group.ayahs
+                    // Get all verses for this surah across all pages
+                    const fullGroup = surahGroups.find((g) => g.surah === group.surah)
+                    const verses = (fullGroup?.ayahs ?? group.ayahs)
                       .filter((a) => !a.isBismillah && a.ayah > 0)
                       .map((a) => ({ surah: a.surah, ayah: a.ayah }))
                     toggleSurahAudio(group.surah, verses)
@@ -411,7 +479,7 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
               </div>
             )}
 
-            {/* Continuous flowing text */}
+            {/* Continuous flowing text for this group on this page */}
             <p className="mushaf-text" lang="ar">
               {group.ayahs.map((ayah) => {
                 if (ayah.isBismillah) {
@@ -448,19 +516,46 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
                 )
               })}
             </p>
-            {/* Surah end marker for auto-tracking */}
-            <div
-              ref={(el) => { if (el) surahEndRefs.current.set(group.surah, el) }}
-              data-surah={group.surah}
-              className="h-1"
-              aria-hidden="true"
-            />
           </div>
         ))}
-        {/* End-of-juz marker for auto-completion tracking */}
-        <div ref={endMarkerRef} className="text-center py-6 text-sm text-muted-foreground">
-          End of Juz {juzNumber}
-        </div>
+
+        {/* Last page indicator */}
+        {currentPage === totalPages - 1 && (
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            End of Juz {juzNumber}
+          </div>
+        )}
+      </div>
+
+      {/* Navigation controls */}
+      <div className="flex items-center justify-between mt-4 gap-2">
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 0}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-lg bg-muted text-sm font-medium disabled:opacity-30 transition-opacity active:scale-95"
+          aria-label="Previous page"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M10 3L5 8l5 5" />
+          </svg>
+          Previous
+        </button>
+
+        <span className="text-sm font-medium text-muted-foreground tabular-nums">
+          {currentPage + 1} / {totalPages}
+        </span>
+
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages - 1}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-lg bg-muted text-sm font-medium disabled:opacity-30 transition-opacity active:scale-95"
+          aria-label="Next page"
+        >
+          Next
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 3l5 5-5 5" />
+          </svg>
+        </button>
       </div>
 
       <AyahDetailSheet
