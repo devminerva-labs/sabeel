@@ -94,11 +94,16 @@ export async function leaveHalaqah(halaqahId: string, userId: string): Promise<s
   return error?.message ?? null
 }
 
-export async function getMyHalaqah(
+export interface HalaqahMembership {
+  halaqah: Halaqah
+  nickname: string
+}
+
+export async function getMyHalaqahs(
   userId: string,
   ramadanYear: RamadanYear,
-): Promise<{ halaqah: Halaqah | null; nickname: string | null; error?: string }> {
-  if (!supabase) return { halaqah: null, nickname: null, error: 'Supabase not configured' }
+): Promise<{ memberships: HalaqahMembership[]; error?: string }> {
+  if (!supabase) return { memberships: [], error: 'Supabase not configured' }
 
   try {
     const { data, error } = await supabase
@@ -106,21 +111,22 @@ export async function getMyHalaqah(
       .select('nickname, halaqahs!inner(*)')
       .eq('user_id', userId)
       .eq('halaqahs.ramadan_year', ramadanYear)
-      .maybeSingle()
 
     if (error) {
-      console.error('Error fetching halaqah:', error)
-      return { halaqah: null, nickname: null, error: error.message }
+      console.error('Error fetching halaqahs:', error)
+      return { memberships: [], error: error.message }
     }
 
-    if (!data) return { halaqah: null, nickname: null }
+    if (!data || data.length === 0) return { memberships: [] }
 
-    const row = data as unknown as { halaqahs: Halaqah; nickname: string }
-    return { halaqah: row.halaqahs, nickname: row.nickname }
+    const memberships = (data as unknown as Array<{ halaqahs: Halaqah; nickname: string }>).map(
+      (row) => ({ halaqah: row.halaqahs, nickname: row.nickname }),
+    )
+    return { memberships }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Exception fetching halaqah:', err)
-    return { halaqah: null, nickname: null, error: message }
+    console.error('Exception fetching halaqahs:', err)
+    return { memberships: [], error: message }
   }
 }
 

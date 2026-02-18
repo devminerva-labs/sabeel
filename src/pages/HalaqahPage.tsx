@@ -3,18 +3,25 @@ import { Link } from 'react-router-dom'
 import { ArabicText } from '@/components/ArabicText'
 import { useAuth } from '@/hooks/useAuth'
 import { useHalaqah } from '@/hooks/useHalaqah'
+import type { HalaqahMembership } from '@/lib/api/halaqah.api'
 
-// ── Leaderboard ──────────────────────────────────────────────
+// ── Leaderboard detail view ───────────────────────────────────
 
-function Leaderboard({ userId }: { userId: string }) {
-  const { halaqah, myNickname, leaderboard, isLoadingLeaderboard, leaveHalaqah } = useHalaqah(userId)
+function LeaderboardView({
+  membership,
+  userId,
+  onBack,
+}: {
+  membership: HalaqahMembership
+  userId: string
+  onBack: () => void
+}) {
+  const { leaderboard, isLoadingLeaderboard, leaveHalaqah } = useHalaqah(userId, membership.halaqah.id)
   const [copied, setCopied] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
-  if (!halaqah) return null
-
   async function handleCopy() {
-    await navigator.clipboard.writeText(halaqah!.invite_code)
+    await navigator.clipboard.writeText(membership.halaqah.invite_code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -22,19 +29,26 @@ function Leaderboard({ userId }: { userId: string }) {
   async function handleLeave() {
     if (!confirm('Leave this Halaqah? You can rejoin with the invite code.')) return
     setLeaving(true)
-    await leaveHalaqah()
+    await leaveHalaqah(membership.halaqah.id)
     setLeaving(false)
+    onBack()
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Back + header */}
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="text-sm text-primary font-medium hover:underline">
+          ← All Halaqahs
+        </button>
+      </div>
+
       <div className="space-y-1">
         <ArabicText as="p" className="text-base text-muted-foreground">حلقة</ArabicText>
-        <h1 className="text-2xl font-bold">{halaqah.name}</h1>
-        {myNickname && (
-          <p className="text-sm text-muted-foreground">You are <span className="font-medium text-foreground">{myNickname}</span></p>
-        )}
+        <h1 className="text-2xl font-bold">{membership.halaqah.name}</h1>
+        <p className="text-sm text-muted-foreground">
+          You are <span className="font-medium text-foreground">{membership.nickname}</span>
+        </p>
       </div>
 
       {/* Invite code */}
@@ -42,7 +56,7 @@ function Leaderboard({ userId }: { userId: string }) {
         <p className="text-xs text-muted-foreground uppercase tracking-wide">Invite code</p>
         <div className="flex items-center gap-3">
           <code className="text-lg font-mono font-semibold tracking-widest text-foreground">
-            {halaqah.invite_code}
+            {membership.halaqah.invite_code}
           </code>
           <button
             onClick={handleCopy}
@@ -51,7 +65,7 @@ function Leaderboard({ userId }: { userId: string }) {
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">Share this code so others can join your Halaqah.</p>
+        <p className="text-xs text-muted-foreground">Share this code so others can join.</p>
       </div>
 
       {/* Leaderboard */}
@@ -80,9 +94,7 @@ function Leaderboard({ userId }: { userId: string }) {
                 {leaderboard.map((entry, i) => (
                   <tr
                     key={entry.nickname}
-                    className={`border-b border-border last:border-0 ${
-                      entry.isMe ? 'bg-primary/5' : ''
-                    }`}
+                    className={`border-b border-border last:border-0 ${entry.isMe ? 'bg-primary/5' : ''}`}
                   >
                     <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
                     <td className="px-4 py-3 font-medium">
@@ -113,9 +125,98 @@ function Leaderboard({ userId }: { userId: string }) {
   )
 }
 
+// ── Halaqah list (home view) ──────────────────────────────────
+
+function HalaqahList({
+  userId,
+  onSelect,
+  onJoinOrCreate,
+}: {
+  userId: string
+  onSelect: (m: HalaqahMembership) => void
+  onJoinOrCreate: () => void
+}) {
+  const { memberships, isLoadingMemberships, membershipsError } = useHalaqah(userId)
+
+  if (isLoadingMemberships) {
+    return (
+      <div className="space-y-4 animate-pulse pt-4">
+        <div className="h-6 rounded bg-muted w-1/3" />
+        <div className="h-16 rounded bg-muted" />
+        <div className="h-16 rounded bg-muted" />
+      </div>
+    )
+  }
+
+  if (membershipsError) {
+    return (
+      <div className="space-y-4 py-8 text-center">
+        <p className="text-sm text-red-500">{membershipsError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-sm text-primary font-medium hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <ArabicText as="p" className="text-base text-muted-foreground">حلقة</ArabicText>
+        <h1 className="text-2xl font-bold">Your Halaqahs</h1>
+        {memberships.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            A private circle where your group tracks Quran progress together.
+          </p>
+        )}
+      </div>
+
+      {/* Membership cards */}
+      {memberships.length > 0 && (
+        <div className="space-y-3">
+          {memberships.map((m) => (
+            <button
+              key={m.halaqah.id}
+              onClick={() => onSelect(m)}
+              className="w-full rounded-xl border border-border bg-background p-4 text-left hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">{m.halaqah.name}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    As <span className="text-foreground">{m.nickname}</span>
+                    <span className="mx-2">·</span>
+                    <code className="font-mono text-xs">{m.halaqah.invite_code}</code>
+                  </p>
+                </div>
+                <svg className="h-5 w-5 text-muted-foreground flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Join / Create button */}
+      <button
+        onClick={onJoinOrCreate}
+        className="w-full rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center hover:bg-primary/10 transition-colors"
+      >
+        <p className="text-sm font-medium text-primary">
+          {memberships.length === 0 ? 'Join or Create a Halaqah' : '+ Join or Create another Halaqah'}
+        </p>
+      </button>
+    </div>
+  )
+}
+
 // ── Create / Join form ────────────────────────────────────────
 
-function CreateOrJoin({ userId }: { userId: string }) {
+function CreateOrJoin({ userId, onBack }: { userId: string; onBack: () => void }) {
   const { createHalaqah, joinHalaqah, createError, joinError } = useHalaqah(userId)
 
   const [mode, setMode] = useState<'create' | 'join'>('join')
@@ -124,6 +225,7 @@ function CreateOrJoin({ userId }: { userId: string }) {
   const [nickname, setNickname] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -132,11 +234,13 @@ function CreateOrJoin({ userId }: { userId: string }) {
     try {
       if (mode === 'create') {
         const { error: err } = await createHalaqah({ name, nickname })
-        if (err) setError(err)
+        if (err) { setError(err); return }
       } else {
         const { error: err } = await joinHalaqah({ inviteCode, nickname })
-        if (err) setError(err)
+        if (err) { setError(err); return }
       }
+      setSuccess(true)
+      setTimeout(() => onBack(), 800)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
     } finally {
@@ -148,12 +252,15 @@ function CreateOrJoin({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="text-sm text-primary font-medium hover:underline">
+          ← Back
+        </button>
+      </div>
+
       <div className="space-y-1">
         <ArabicText as="p" className="text-base text-muted-foreground">حلقة</ArabicText>
-        <h1 className="text-2xl font-bold">Your Halaqah</h1>
-        <p className="text-sm text-muted-foreground">
-          A private circle where your group tracks Quran progress together.
-        </p>
+        <h1 className="text-2xl font-bold">{mode === 'create' ? 'Create Halaqah' : 'Join Halaqah'}</h1>
       </div>
 
       {/* Mode toggle */}
@@ -221,9 +328,15 @@ function CreateOrJoin({ userId }: { userId: string }) {
           <p className="text-sm text-red-500">{error ?? apiError}</p>
         )}
 
+        {success && (
+          <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+            {mode === 'create' ? 'Halaqah created!' : 'Joined successfully!'}
+          </p>
+        )}
+
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || success}
           className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {isSubmitting ? 'Please wait…' : mode === 'create' ? 'Create Halaqah' : 'Join Halaqah'}
@@ -260,8 +373,14 @@ function NotLoggedIn() {
 
 // ── Page ──────────────────────────────────────────────────────
 
+type HalaqahView =
+  | { type: 'list' }
+  | { type: 'detail'; membership: HalaqahMembership }
+  | { type: 'join-create' }
+
 export function HalaqahPage() {
   const { user, isLoading: authLoading } = useAuth()
+  const [view, setView] = useState<HalaqahView>({ type: 'list' })
 
   if (authLoading) {
     return (
@@ -274,39 +393,31 @@ export function HalaqahPage() {
   }
 
   if (!user) return <NotLoggedIn />
-  return <HalaqahContent userId={user.id} />
-}
 
-function HalaqahContent({ userId }: { userId: string }) {
-  const { halaqah, isLoadingHalaqah, halaqahError } = useHalaqah(userId)
-
-  if (isLoadingHalaqah) {
+  if (view.type === 'detail') {
     return (
-      <div className="space-y-4 animate-pulse pt-4">
-        <div className="h-6 rounded bg-muted w-1/3" />
-        <div className="h-10 rounded bg-muted" />
-        <div className="h-10 rounded bg-muted w-2/3" />
-      </div>
+      <LeaderboardView
+        membership={view.membership}
+        userId={user.id}
+        onBack={() => setView({ type: 'list' })}
+      />
     )
   }
 
-  if (halaqahError) {
+  if (view.type === 'join-create') {
     return (
-      <div className="space-y-6 text-center py-8">
-        <div className="space-y-2">
-          <p className="text-red-500 text-sm">{halaqahError}</p>
-          <p className="text-sm text-muted-foreground">Please try again later or contact support.</p>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="inline-block bg-primary text-primary-foreground px-6 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          Retry
-        </button>
-      </div>
+      <CreateOrJoin
+        userId={user.id}
+        onBack={() => setView({ type: 'list' })}
+      />
     )
   }
 
-  if (!halaqah) return <CreateOrJoin userId={userId} />
-  return <Leaderboard userId={userId} />
+  return (
+    <HalaqahList
+      userId={user.id}
+      onSelect={(m) => setView({ type: 'detail', membership: m })}
+      onJoinOrCreate={() => setView({ type: 'join-create' })}
+    />
+  )
 }

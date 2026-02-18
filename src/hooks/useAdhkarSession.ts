@@ -54,7 +54,9 @@ export function useAdhkarSession(category: AdhkarCategory, userId?: string | nul
       }
 
       if (userId) {
-        upsertAdhkarSession(userId, now, category, newCounts, false).catch(console.error)
+        // Preserve completed status — don't overwrite a completed session with false
+        const currentCompleted = existing?.completed ?? false
+        upsertAdhkarSession(userId, now, category, newCounts, currentCompleted).catch(console.error)
       }
     },
     [category, userId],
