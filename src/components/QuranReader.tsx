@@ -52,6 +52,7 @@ function useSurahAudio() {
 
     const audio = audioRef.current
     audio.src = ayahAudioUrl(verse.surah, verse.ayah)
+    audio.load() // Required on iOS 17.2+ — re-initializes the element after src change
     setIsLoading(true)
 
     audio.oncanplay = () => setIsLoading(false)
@@ -66,6 +67,8 @@ function useSurahAudio() {
     }
 
     audio.play().catch((err: unknown) => {
+      // AbortError is expected during rapid src changes — skip, don't stop
+      if (err instanceof DOMException && err.name === 'AbortError') return
       const name = err instanceof DOMException ? err.name : 'UnknownError'
       if (name === 'NotAllowedError') {
         setPlayError('Tap the button again to play audio')
