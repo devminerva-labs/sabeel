@@ -16,6 +16,7 @@ function useSurahAudio() {
   const [playingSurah, setPlayingSurah] = useState<number | null>(null)
   const [currentAyah, setCurrentAyah] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const [playError, setPlayError] = useState<string | null>(null)
 
   const stop = useCallback(() => {
     if (audioRef.current) {
@@ -24,6 +25,7 @@ function useSurahAudio() {
       audioRef.current.oncanplay = null
       audioRef.current.pause()
       audioRef.current.src = ''
+      audioRef.current = null
     }
     queueRef.current = []
     indexRef.current = 0
@@ -63,12 +65,19 @@ function useSurahAudio() {
       playNext()
     }
 
-    audio.play().catch(() => {
+    audio.play().catch((err: unknown) => {
+      const name = err instanceof DOMException ? err.name : 'UnknownError'
+      if (name === 'NotAllowedError') {
+        setPlayError('Tap the button again to play audio')
+      } else {
+        setPlayError('Could not load audio — check your connection')
+      }
       stop()
     })
   }, [stop])
 
   const play = useCallback((surah: number, verses: { surah: number; ayah: number }[]) => {
+    setPlayError(null)
     stop()
     queueRef.current = verses
     indexRef.current = 0
@@ -87,11 +96,19 @@ function useSurahAudio() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      audioRef.current?.pause()
+      if (audioRef.current) {
+        audioRef.current.onended = null
+        audioRef.current.onerror = null
+        audioRef.current.oncanplay = null
+        audioRef.current.pause()
+        audioRef.current.src = ''
+        audioRef.current = null
+      }
+      queueRef.current = []
     }
   }, [])
 
-  return { playingSurah, currentAyah, isLoading, toggle, stop }
+  return { playingSurah, currentAyah, isLoading, playError, toggle, stop }
 }
 
 // Surah names for headers (all 114)
@@ -269,7 +286,7 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null)
   const [slideKey, setSlideKey] = useState(0)
   const [fontSize, setFontSize] = useState<FontSize>(getSavedFontSize())
-  const { playingSurah, currentAyah, isLoading: audioLoading, toggle: toggleSurahAudio } = useSurahAudio()
+  const { playingSurah, currentAyah, isLoading: audioLoading, playError: audioPlayError, toggle: toggleSurahAudio } = useSurahAudio()
   const startCalledRef = useRef(false)
   const finishCalledRef = useRef(false)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -577,6 +594,9 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
                         </>
                       )}
                     </button>
+                    {audioPlayError && playingSurah === null && (
+                      <p className="text-xs text-red-500 mt-1">{audioPlayError}</p>
+                    )}
                   </div>
                 )}
 
