@@ -19,6 +19,9 @@ function useSurahAudio() {
 
   const stop = useCallback(() => {
     if (audioRef.current) {
+      audioRef.current.onended = null
+      audioRef.current.onerror = null
+      audioRef.current.oncanplay = null
       audioRef.current.pause()
       audioRef.current.src = ''
     }

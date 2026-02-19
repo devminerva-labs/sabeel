@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArabicText } from '@/components/ArabicText'
 import { DhikrCard } from '@/components/DhikrCard'
 import { useAdhkarSession } from '@/hooks/useAdhkarSession'
@@ -53,10 +53,17 @@ export function AdhkarPage() {
 function CategoryView({ category, userId, onBack }: { category: AdhkarCategory; userId?: string; onBack: () => void }) {
   const cat = CATEGORIES.find((c) => c.id === category)!
   const adhkar = getAdhkarByCategory(category)
-  const { counts, increment } = useAdhkarSession(category, userId)
+  const { counts, completed, increment, markComplete } = useAdhkarSession(category, userId)
   const isAnxiety = category === 'anxiety'
 
   const totalDone = adhkar.filter((d) => (counts[d.id] ?? 0) >= d.repetitions).length
+
+  // Auto-complete when all dhikr repetitions are reached
+  useEffect(() => {
+    if (totalDone === adhkar.length && adhkar.length > 0 && !completed) {
+      markComplete()
+    }
+  }, [totalDone, adhkar.length, completed, markComplete])
 
   return (
     <div className="space-y-4">
