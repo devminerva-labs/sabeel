@@ -23,7 +23,7 @@ export const SURAH_DATA: SurahData[] = [
   { id: 12, arabicName: 'يوسف', englishName: 'Joseph', transliteration: 'Yusuf', revelationType: 'meccan', verseCount: 111, juzStart: 12 },
   { id: 13, arabicName: 'الرعد', englishName: 'The Thunder', transliteration: "Ar-Ra'd", revelationType: 'medinan', verseCount: 43, juzStart: 13 },
   { id: 14, arabicName: 'إبراهيم', englishName: 'Ibrahim', transliteration: 'Ibrahim', revelationType: 'meccan', verseCount: 52, juzStart: 13 },
-  { id: 15, arabicName: 'الحجر', englishName: 'The Rocky Tract', transliteration: 'Al-Hijr', revelationType: 'meccan', verseCount: 99, juzStart: 13 },
+  { id: 15, arabicName: 'الحجر', englishName: 'The Rocky Tract', transliteration: 'Al-Hijr', revelationType: 'meccan', verseCount: 99, juzStart: 14 },
   { id: 16, arabicName: 'النحل', englishName: 'The Bee', transliteration: 'An-Nahl', revelationType: 'meccan', verseCount: 128, juzStart: 14 },
   { id: 17, arabicName: 'الإسراء', englishName: 'The Night Journey', transliteration: 'Al-Isra', revelationType: 'meccan', verseCount: 111, juzStart: 15 },
   { id: 18, arabicName: 'الكهف', englishName: 'The Cave', transliteration: 'Al-Kahf', revelationType: 'meccan', verseCount: 110, juzStart: 15 },

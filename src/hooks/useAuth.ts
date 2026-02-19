@@ -42,14 +42,27 @@ export function useAuth() {
       }
     })
 
-    // Re-check session when PWA regains focus (user returning from OAuth in browser)
-    function handleVisibility() {
-      if (document.visibilityState === 'visible') {
-        supabase!.auth.getSession().then(({ data }) => {
-          if (data.session) {
-            setState({ user: data.session.user, session: data.session, isLoading: false })
-          }
-        })
+    // Re-check session when PWA regains focus.
+    // iOS suspends JS timers in the background, so the Supabase auto-refresh
+    // timer can miss its window when the JWT expires while backgrounded.
+    // We explicitly refresh the access token here to keep users logged in.
+    const handleVisibility = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const { data: { session } } = await supabase!.auth.getSession()
+        if (!session) return
+
+        const nowSec = Math.floor(Date.now() / 1000)
+        if ((session.expires_at ?? 0) < nowSec + 60) {
+          // Token has expired or is expiring within 60s — force a network refresh.
+          // onAuthStateChange will receive TOKEN_REFRESHED (stays logged in) or
+          // SIGNED_OUT (refresh token itself expired — nothing we can do).
+          await supabase!.auth.refreshSession()
+        } else {
+          setState((prev) => ({ ...prev, user: session.user, session, isLoading: false }))
+        }
+      } catch {
+        // Silently ignore — onAuthStateChange handles any resulting state change
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

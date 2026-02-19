@@ -132,7 +132,6 @@ body {
   line-height: 3;
   border: 1px solid var(--color-mushaf-border, #e6d5b8);
   box-shadow: 0 2px 12px var(--color-mushaf-shadow, rgba(44, 24, 16, 0.08));
-  overflow: hidden;
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
