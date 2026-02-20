@@ -4,7 +4,8 @@ import { SURAH_DATA } from '@/content/surah-data'
 import type { ProgressStatus } from '@/types'
 
 interface SurahListProps {
-  onSelectSurah: (juzNumber: number, surahId: number) => void
+  /** Called when user taps a surah to read it */
+  onSelectSurah: (surahId: number) => void
   /** Optional: surah status getter for showing progress indicators */
   getSurahStatus?: (surahId: number) => ProgressStatus
   /** Optional: tap status badge to manually cycle surah progress */
@@ -98,7 +99,7 @@ export function SurahList({ onSelectSurah, getSurahStatus, onCycleSurahStatus }:
 
               {/* Main row — tap to open reader */}
               <button
-                onClick={() => onSelectSurah(surah.juzStart, surah.id)}
+                onClick={() => onSelectSurah(surah.id)}
                 onTouchStart={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
                 aria-label={`${surah.englishName}, ${surah.verseCount} verses, ${badge.label || 'not started'}`}

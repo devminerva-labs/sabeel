@@ -296,6 +296,7 @@ body {
   border: 1px solid var(--color-accent);
   border-radius: 0.35rem;
   opacity: 0.4;
+  pointer-events: none; /* Allow clicks to pass through to button */
 }
 
 /* Decorative ornaments on sides */

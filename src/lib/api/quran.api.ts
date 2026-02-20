@@ -1,4 +1,4 @@
-import { db, type QuranCacheRecord } from '@/lib/db'
+import { db, type QuranCacheRecord, type SurahCacheRecord } from '@/lib/db'
 
 const BASE_URL = 'https://api.quran.com/api/v4'
 
@@ -110,4 +110,74 @@ export async function precacheAllJuz(progressCallback?: (current: number, total:
 export async function areAllJuzCached(): Promise<boolean> {
   const cached = await db.quranCache.toArray()
   return cached.length === 30 && cached.every(c => c.ayahs.length > 0)
+}
+
+// ==================== SURAH MODE ====================
+
+export async function fetchSurahFromAPI(surahNumber: number): Promise<SurahCacheRecord['ayahs']> {
+  const allVerses: QuranComVerse[] = []
+  let page = 1
+  let totalPages = 1
+  const perPage = 300
+  // const totalVerses = SURAH_VERSE_COUNTS[surahNumber] ?? 0
+
+  // Fetch all pages (some surahs like Al-Baqarah have 286 verses)
+  while (page <= totalPages) {
+    const res = await fetch(
+      `${BASE_URL}/verses/by_chapter/${surahNumber}?language=en&translations=20&fields=text_uthmani&per_page=${perPage}&page=${page}`
+    )
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch Surah ${surahNumber}`)
+    }
+
+    const data: QuranComResponse = await res.json()
+    allVerses.push(...data.verses)
+    totalPages = data.pagination.total_pages
+    page++
+  }
+
+  const result: SurahCacheRecord['ayahs'] = []
+  
+  // Inject Bismillah for all surahs except Al-Fatiha (1) and At-Tawbah (9)
+  if (surahNumber !== 1 && surahNumber !== 9) {
+    result.push({ 
+      surah: surahNumber, 
+      ayah: 0, 
+      arabic: BISMILLAH_ARABIC, 
+      translation: '', 
+      isBismillah: true 
+    })
+  }
+
+  for (const v of allVerses) {
+    const [, ayahStr = '0'] = v.verse_key.split(':')
+    const ayah = parseInt(ayahStr, 10)
+    const arabic = v.text_uthmani.trim()
+    const translation = stripHtml(v.translations[0]?.text ?? '')
+
+    result.push({ surah: surahNumber, ayah, arabic, translation })
+  }
+
+  return result
+}
+
+export async function getSurahCached(surahNumber: number): Promise<SurahCacheRecord['ayahs']> {
+  const cached = await db.surahCache.get(surahNumber)
+  if (cached && cached.schemaVersion === CACHE_SCHEMA_VERSION) return cached.ayahs
+
+  try {
+    const ayahs = await fetchSurahFromAPI(surahNumber)
+    await db.surahCache.put({
+      surahNumber,
+      ayahs,
+      fetchedAt: new Date().toISOString(),
+      schemaVersion: CACHE_SCHEMA_VERSION,
+    })
+    return ayahs
+  } catch (err) {
+    // Offline or network error — return stale cache if available
+    if (cached && cached.ayahs.length > 0) return cached.ayahs
+    throw err
+  }
 }

@@ -1,16 +1,30 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { getJuzCached } from '@/lib/api/quran.api'
-import type { QuranCacheRecord } from '@/lib/db'
+import { getJuzCached, getSurahCached } from '@/lib/api/quran.api'
+import type { QuranCacheRecord, SurahCacheRecord } from '@/lib/db'
+import { SURAH_VERSE_COUNTS } from '@/content/quran-structure'
 
 // Approximate ayah counts per Juz — used for skeleton rows
 const JUZ_AYAH_COUNTS: Record<number, number> = {
-  1: 148, 2: 111, 3: 126, 4: 176, 5: 124, 6: 110, 7: 149, 8: 142, 9: 159, 10: 127,
-  11: 138, 12: 150, 13: 154, 14: 99, 15: 185, 16: 286, 17: 159, 18: 171, 19: 175, 20: 167,
-  21: 145, 22: 131, 23: 133, 24: 123, 25: 128, 26: 121, 27: 112, 28: 137, 29: 431, 30: 564,
+  1: 148, 2: 111, 3: 126, 4: 131, 5: 124, 6: 110, 7: 149, 8: 142, 9: 159, 10: 127,
+  11: 151, 12: 170, 13: 154, 14: 227, 15: 185, 16: 269, 17: 190, 18: 202, 19: 339, 20: 171,
+  21: 178, 22: 169, 23: 357, 24: 175, 25: 246, 26: 195, 27: 399, 28: 137, 29: 431, 30: 564,
 }
 
-function makeSkeleton(juzNumber: number): QuranCacheRecord['ayahs'] {
+// Use actual surah verse counts for skeleton
+function makeSurahSkeleton(surahNumber: number): SurahCacheRecord['ayahs'] {
+  const count = SURAH_VERSE_COUNTS[surahNumber] ?? 100
+  // Add 1 for Bismillah if applicable
+  const totalItems = count + (surahNumber !== 1 && surahNumber !== 9 ? 1 : 0)
+  return Array.from({ length: totalItems }, (_, i) => ({
+    surah: surahNumber,
+    ayah: i, // 0 for Bismillah, 1+ for actual verses
+    arabic: '',
+    translation: '',
+  }))
+}
+
+function makeJuzSkeleton(juzNumber: number): QuranCacheRecord['ayahs'] {
   const count = JUZ_AYAH_COUNTS[juzNumber] ?? 120
   return Array.from({ length: count }, (_, i) => ({
     surah: 0,
@@ -20,7 +34,15 @@ function makeSkeleton(juzNumber: number): QuranCacheRecord['ayahs'] {
   }))
 }
 
-export function useQuranReader(juzNumber: number) {
+// ==================== JUZ MODE ====================
+
+interface UseQuranReaderJuzOptions {
+  mode: 'juz'
+  juzNumber: number
+}
+
+export function useQuranReaderJuz(options: UseQuranReaderJuzOptions) {
+  const { juzNumber } = options
   const queryClient = useQueryClient()
 
   const { data, isLoading, isPlaceholderData, error } = useQuery<QuranCacheRecord['ayahs']>({
@@ -28,17 +50,15 @@ export function useQuranReader(juzNumber: number) {
     queryFn: () => getJuzCached(juzNumber),
     staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
-    placeholderData: () => makeSkeleton(juzNumber),
-    // Always run queryFn (which reads Dexie first) even when browser reports offline
+    placeholderData: () => makeJuzSkeleton(juzNumber),
     networkMode: 'offlineFirst',
     retry: (failureCount) => {
-      // Don't retry when offline — show error/stale cache immediately
       if (!navigator.onLine) return false
       return failureCount < 2
     },
   })
 
-  // Silently prefetch adjacent Juz while the user is reading
+  // Silently prefetch adjacent Juz
   useEffect(() => {
     const neighbors = [juzNumber - 1, juzNumber + 1].filter((n) => n >= 1 && n <= 30)
     for (const n of neighbors) {
@@ -50,5 +70,70 @@ export function useQuranReader(juzNumber: number) {
     }
   }, [juzNumber, queryClient])
 
-  return { ayahs: data ?? [], isLoading: isLoading || isPlaceholderData, error }
+  return { 
+    ayahs: data ?? [], 
+    isLoading: isLoading || isPlaceholderData, 
+    error,
+    mode: 'juz' as const,
+    juzNumber,
+  }
+}
+
+// ==================== SURAH MODE ====================
+
+interface UseQuranReaderSurahOptions {
+  mode: 'surah'
+  surahNumber: number
+}
+
+export function useQuranReaderSurah(options: UseQuranReaderSurahOptions) {
+  const { surahNumber } = options
+  const queryClient = useQueryClient()
+
+  const { data, isLoading, isPlaceholderData, error } = useQuery<SurahCacheRecord['ayahs']>({
+    queryKey: ['quran-surah', surahNumber],
+    queryFn: () => getSurahCached(surahNumber),
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 30,
+    placeholderData: () => makeSurahSkeleton(surahNumber),
+    networkMode: 'offlineFirst',
+    retry: (failureCount) => {
+      if (!navigator.onLine) return false
+      return failureCount < 2
+    },
+  })
+
+  // Silently prefetch adjacent Surahs
+  useEffect(() => {
+    const neighbors = [surahNumber - 1, surahNumber + 1].filter((n) => n >= 1 && n <= 114)
+    for (const n of neighbors) {
+      queryClient.prefetchQuery({
+        queryKey: ['quran-surah', n],
+        queryFn: () => getSurahCached(n),
+        staleTime: Infinity,
+      })
+    }
+  }, [surahNumber, queryClient])
+
+  return { 
+    ayahs: data ?? [], 
+    isLoading: isLoading || isPlaceholderData, 
+    error,
+    mode: 'surah' as const,
+    surahNumber,
+  }
+}
+
+// ==================== UNIFIED HOOK ====================
+
+export type UseQuranReaderOptions = 
+  | { mode: 'juz'; juzNumber: number }
+  | { mode: 'surah'; surahNumber: number }
+
+export function useQuranReader(options: UseQuranReaderOptions) {
+  if (options.mode === 'juz') {
+    return useQuranReaderJuz(options)
+  } else {
+    return useQuranReaderSurah(options)
+  }
 }

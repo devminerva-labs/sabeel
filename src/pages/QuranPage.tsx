@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { calculateCatchUp } from '@/lib/catch-up'
 import { juzId, surahId, type JuzId } from '@/types'
 import { JUZ_DATA } from '@/content/juz-data'
+import { SURAH_DATA } from '@/content/surah-data'
 import { getJuzCached, precacheAllJuz } from '@/lib/api/quran.api'
 
 type QuranView = 'juz' | 'surah'
@@ -40,10 +41,14 @@ function ViewToggle({ view, onChange }: { view: QuranView; onChange: (v: QuranVi
   )
 }
 
+// Reader mode types
+type ReaderMode =
+  | { type: 'juz'; juzNumber: number; targetSurah?: number }
+  | { type: 'surah'; surahNumber: number }
+
 export function QuranPage() {
   const { ramadanYear, dayNumber, season } = useRamadanContext()
-  const [selectedJuz, setSelectedJuz] = useState<number | null>(null)
-  const [targetSurah, setTargetSurah] = useState<number | undefined>(undefined)
+  const [readerMode, setReaderMode] = useState<ReaderMode | null>(null)
   const [view, setView] = useState<QuranView>('juz')
   const [autoTrackMsg, setAutoTrackMsg] = useState<string | null>(null)
   const [downloadingJuz, setDownloadingJuz] = useState(false)
@@ -59,9 +64,15 @@ export function QuranPage() {
   const progress = useQuranProgress(safeYear, user?.id)
   const surahProg = useSurahProgress(safeYear, user?.id)
 
-  const openJuz = (juz: number, surah?: number) => {
-    setSelectedJuz(juz)
-    setTargetSurah(surah)
+  // Open Juz mode
+  const openJuz = (juz: number, targetSurah?: number) => {
+    setReaderMode({ type: 'juz', juzNumber: juz, targetSurah })
+    setAutoTrackMsg(null)
+  }
+
+  // Open Surah mode (NEW)
+  const openSurah = (surahNumber: number) => {
+    setReaderMode({ type: 'surah', surahNumber })
     setAutoTrackMsg(null)
   }
 
@@ -72,28 +83,32 @@ export function QuranPage() {
     }
   }, []) // only on mount
 
-  // Auto-tracking callbacks for the reader
+  // Get current reader info for tracking
+  const currentJuzNumber = readerMode?.type === 'juz' ? readerMode.juzNumber : null
+  // const currentSurahNumber = readerMode?.type === 'surah' ? readerMode.surahNumber : null
+
+  // Auto-tracking callbacks for the reader (only for Juz mode)
   const handleStartReading = useCallback(() => {
-    if (!ramadanYear || selectedJuz === null) return
-    const id = juzId(selectedJuz)
+    if (!ramadanYear || currentJuzNumber === null) return
+    const id = juzId(currentJuzNumber)
     const current = progress.getStatus(id)
     if (current === 'not_started') {
       progress.setStatusIf(id, 'not_started', 'in_progress')
-      setAutoTrackMsg(`Juz ${selectedJuz} marked as in progress`)
+      setAutoTrackMsg(`Juz ${currentJuzNumber} marked as in progress`)
       setTimeout(() => setAutoTrackMsg(null), 3000)
     }
-  }, [ramadanYear, progress, selectedJuz])
+  }, [ramadanYear, progress, currentJuzNumber])
 
   const handleFinishReading = useCallback(() => {
-    if (!ramadanYear || selectedJuz === null) return
-    const id = juzId(selectedJuz)
+    if (!ramadanYear || currentJuzNumber === null) return
+    const id = juzId(currentJuzNumber)
     const current = progress.getStatus(id)
     if (current === 'in_progress') {
       progress.setStatusIf(id, 'in_progress', 'completed')
-      setAutoTrackMsg(`Juz ${selectedJuz} marked as completed!`)
+      setAutoTrackMsg(`Juz ${currentJuzNumber} marked as completed!`)
       setTimeout(() => setAutoTrackMsg(null), 4000)
     }
-  }, [ramadanYear, progress, selectedJuz])
+  }, [ramadanYear, progress, currentJuzNumber])
 
   const handleSurahRead = useCallback((surahNumber: number) => {
     if (!ramadanYear) return
@@ -118,26 +133,35 @@ export function QuranPage() {
     }
   }, [])
 
-  if (selectedJuz !== null) {
+  // Render reader mode (either Juz or Surah)
+  if (readerMode) {
+    const isJuzMode = readerMode.type === 'juz'
+    const title = isJuzMode 
+      ? `Juz ${readerMode.juzNumber}`
+      : SURAH_DATA.find(s => s.id === readerMode.surahNumber)?.englishName ?? `Surah ${readerMode.surahNumber}`
+    const subtitle = isJuzMode
+      ? JUZ_DATA.find((j) => j.id === readerMode.juzNumber)?.name
+      : `${SURAH_DATA.find(s => s.id === readerMode.surahNumber)?.verseCount ?? ''} verses`
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setSelectedJuz(null); setTargetSurah(undefined) }}
+            onClick={() => setReaderMode(null)}
             className="text-sm text-primary font-medium hover:underline"
           >
             ← Back
           </button>
           <h1 className="text-xl font-semibold">
-            Juz {selectedJuz}
+            {title}
             <span className="text-sm font-normal text-muted-foreground ml-2">
-              {JUZ_DATA.find((j) => j.id === selectedJuz)?.name}
+              {subtitle}
             </span>
           </h1>
         </div>
 
-        {/* Auto-track notification */}
-        {autoTrackMsg && (
+        {/* Auto-track notification (only for Juz mode) */}
+        {autoTrackMsg && isJuzMode && (
           <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-2 text-sm font-medium text-primary text-center animate-in fade-in slide-in-from-top-2 duration-300">
             {autoTrackMsg}
           </div>
@@ -146,41 +170,52 @@ export function QuranPage() {
         {/* Offline indicator */}
         <OfflineIndicator />
 
-        {/* Download for offline */}
-        {!downloadingJuz ? (
-          <button
-            onClick={handleDownloadForOffline}
-            className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1a.5.5 0 0 1 .5.5v10.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 12.293V1.5A.5.5 0 0 1 8 1z"/>
-              <path d="M1.5 14.5a.5.5 0 0 1 .5-.5h12a.5.5 0 0 1 0 1h-12a.5.5 0 0 1-.5-.5z"/>
-            </svg>
-            Download for offline reading
-          </button>
-        ) : (
-          <div className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between mb-1">
-              <span>Downloading Quran...</span>
-              <span>{downloadProgress}%</span>
+        {/* Download for offline (only for Juz mode) */}
+        {isJuzMode && (
+          !downloadingJuz ? (
+            <button
+              onClick={handleDownloadForOffline}
+              className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 1a.5.5 0 0 1 .5.5v10.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 12.293V1.5A.5.5 0 0 1 8 1z"/>
+                <path d="M1.5 14.5a.5.5 0 0 1 .5-.5h12a.5.5 0 0 1 0 1h-12a.5.5 0 0 1-.5-.5z"/>
+              </svg>
+              Download for offline reading
+            </button>
+          ) : (
+            <div className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between mb-1">
+                <span>Downloading Quran...</span>
+                <span>{downloadProgress}%</span>
+              </div>
+              <div className="h-1 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-300" 
+                  style={{ width: `${downloadProgress}%` }}
+                />
+              </div>
             </div>
-            <div className="h-1 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all duration-300" 
-                style={{ width: `${downloadProgress}%` }}
-              />
-            </div>
-          </div>
+          )
         )}
 
         <ErrorBoundary level="component" fallback={<p className="text-center text-muted-foreground">Reader failed to load.</p>}>
-          <QuranReader
-            juzNumber={selectedJuz}
-            targetSurah={targetSurah}
-            onStartReading={handleStartReading}
-            onFinishReading={handleFinishReading}
-            onSurahRead={handleSurahRead}
-          />
+          {isJuzMode ? (
+            <QuranReader
+              mode="juz"
+              juzNumber={readerMode.juzNumber}
+              targetSurah={readerMode.targetSurah}
+              onStartReading={handleStartReading}
+              onFinishReading={handleFinishReading}
+              onSurahRead={handleSurahRead}
+            />
+          ) : (
+            <QuranReader
+              mode="surah"
+              surahNumber={readerMode.surahNumber}
+              onSurahRead={handleSurahRead}
+            />
+          )}
         </ErrorBoundary>
       </div>
     )
@@ -197,10 +232,10 @@ export function QuranPage() {
         {view === 'juz' ? (
           <>
             <p className="text-sm text-muted-foreground text-center">Ramadan has not started yet. Tap a Juz to read.</p>
-            <JuzGridReadOnly onSelect={setSelectedJuz} />
+            <JuzGridReadOnly onSelect={openJuz} />
           </>
         ) : (
-          <SurahList onSelectSurah={(juz, surah) => openJuz(juz, surah)} />
+          <SurahList onSelectSurah={openSurah} />
         )}
       </div>
     )
@@ -212,6 +247,7 @@ export function QuranPage() {
       dayNumber={dayNumber}
       totalDays={season.days}
       onSelectJuz={openJuz}
+      onSelectSurah={openSurah}
       view={view}
       onViewChange={setView}
       surahProgress={surahProg}
@@ -225,6 +261,7 @@ function QuranGridView({
   dayNumber,
   totalDays,
   onSelectJuz,
+  onSelectSurah,
   view,
   onViewChange,
   surahProgress,
@@ -234,6 +271,7 @@ function QuranGridView({
   dayNumber: number | null
   totalDays: 29 | 30
   onSelectJuz: (juz: number, surah?: number) => void
+  onSelectSurah: (surah: number) => void
   view: QuranView
   onViewChange: (v: QuranView) => void
   surahProgress: ReturnType<typeof useSurahProgress>
@@ -280,7 +318,7 @@ function QuranGridView({
         </>
       ) : (
         <SurahList
-          onSelectSurah={(juz, surah) => onSelectJuz(juz, surah)}
+          onSelectSurah={onSelectSurah}
           getSurahStatus={(id) => surahProgress.getStatus(surahId(id))}
           onCycleSurahStatus={(id) => surahProgress.cycleStatus(surahId(id))}
         />

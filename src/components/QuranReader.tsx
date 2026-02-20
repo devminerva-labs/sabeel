@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useQuranReader } from '@/hooks/useQuranReader'
+import { useQuranReader, type UseQuranReaderOptions } from '@/hooks/useQuranReader'
 import { AyahDetailSheet } from '@/components/AyahDetailSheet'
 import { db } from '@/lib/db'
+import { unlockAudioContext } from '@/lib/audio-unlock'
 
 function ayahAudioUrl(surah: number, ayah: number): string {
   const s = String(surah).padStart(3, '0')
@@ -10,7 +11,10 @@ function ayahAudioUrl(surah: number, ayah: number): string {
 }
 
 function useSurahAudio() {
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  // Pre-create the Audio element once — iOS requires the element to exist before
+  // the first play() call and to NOT be recreated mid-gesture-stack.
+  // Never null this ref; just pause() and overwrite src on each play.
+  const audioRef = useRef<HTMLAudioElement>(new Audio())
   const queueRef = useRef<{ surah: number; ayah: number }[]>([])
   const indexRef = useRef(0)
   const [playingSurah, setPlayingSurah] = useState<number | null>(null)
@@ -19,14 +23,13 @@ function useSurahAudio() {
   const [playError, setPlayError] = useState<string | null>(null)
 
   const stop = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.onended = null
-      audioRef.current.onerror = null
-      audioRef.current.oncanplay = null
-      audioRef.current.pause()
-      audioRef.current.src = ''
-      audioRef.current = null
-    }
+    const audio = audioRef.current
+    audio.onended  = null
+    audio.onerror  = null
+    audio.oncanplay = null
+    audio.pause()
+    // Do NOT clear src or null the ref — clearing src taints the element on iOS,
+    // causing subsequent play() calls to fail even within a user gesture.
     queueRef.current = []
     indexRef.current = 0
     setPlayingSurah(null)
@@ -46,13 +49,12 @@ function useSurahAudio() {
 
     setCurrentAyah(verse.ayah)
 
-    if (!audioRef.current) {
-      audioRef.current = new Audio()
-    }
-
     const audio = audioRef.current
+    audio.onended  = null
+    audio.onerror  = null
+    audio.oncanplay = null
     audio.src = ayahAudioUrl(verse.surah, verse.ayah)
-    audio.load() // Required on iOS 17.2+ — re-initializes the element after src change
+    audio.load() // Required on iOS 17.2+ — re-initializes after src change
     setIsLoading(true)
 
     audio.oncanplay = () => setIsLoading(false)
@@ -99,14 +101,11 @@ function useSurahAudio() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.onended = null
-        audioRef.current.onerror = null
-        audioRef.current.oncanplay = null
-        audioRef.current.pause()
-        audioRef.current.src = ''
-        audioRef.current = null
-      }
+      const audio = audioRef.current
+      audio.onended  = null
+      audio.onerror  = null
+      audio.oncanplay = null
+      audio.pause()
       queueRef.current = []
     }
   }, [])
@@ -259,13 +258,27 @@ interface SurahGroup {
 // Number of verses per page (approximate — surah headers may add visual weight)
 const VERSES_PER_PAGE = 15
 
-interface QuranReaderProps {
-  juzNumber: number
-  targetSurah?: number
+// Base props shared between modes
+interface QuranReaderBaseProps {
   onStartReading?: () => void
   onFinishReading?: () => void
   onSurahRead?: (surahNumber: number) => void
 }
+
+// Juz mode props
+interface QuranReaderJuzProps extends QuranReaderBaseProps {
+  mode: 'juz'
+  juzNumber: number
+  targetSurah?: number  // Optional: jump to specific surah within juz
+}
+
+// Surah mode props
+interface QuranReaderSurahProps extends QuranReaderBaseProps {
+  mode: 'surah'
+  surahNumber: number
+}
+
+type QuranReaderProps = QuranReaderJuzProps | QuranReaderSurahProps
 
 type FontSize = 'small' | 'medium' | 'large'
 
@@ -280,8 +293,20 @@ function saveFontSize(size: FontSize) {
   localStorage.setItem(FONT_SIZE_STORAGE_KEY, size)
 }
 
-export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishReading, onSurahRead }: QuranReaderProps) {
-  const { ayahs, isLoading, error } = useQuranReader(juzNumber)
+export function QuranReader(props: QuranReaderProps) {
+  // Determine mode and extract relevant props
+  const isJuzMode = props.mode === 'juz'
+  const juzNumber = isJuzMode ? props.juzNumber : 0
+  const surahNumber = !isJuzMode ? props.surahNumber : 0
+  const targetSurah = isJuzMode ? props.targetSurah : undefined
+  const { onStartReading, onFinishReading, onSurahRead } = props
+  
+  // Set up the query based on mode
+  const readerOptions: UseQuranReaderOptions = isJuzMode 
+    ? { mode: 'juz', juzNumber }
+    : { mode: 'surah', surahNumber }
+  
+  const { ayahs, isLoading, error } = useQuranReader(readerOptions)
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null)
   const [selectedSurahName, setSelectedSurahName] = useState<string | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(0)
@@ -327,17 +352,17 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
 
   const totalPages = pages.length
 
-  // Restore bookmark on mount (only if no targetSurah override)
+  // Restore bookmark on mount (only if no targetSurah override, and only in Juz mode)
   const bookmarkRestoredRef = useRef(false)
   useEffect(() => {
-    if (targetSurah || bookmarkRestoredRef.current || pages.length === 0) return
+    if (!isJuzMode || targetSurah || bookmarkRestoredRef.current || pages.length === 0) return
     bookmarkRestoredRef.current = true
     db.readingBookmarks.get(juzNumber).then((bookmark) => {
       if (bookmark && bookmark.page > 0 && bookmark.page < pages.length) {
         setCurrentPage(bookmark.page)
       }
     })
-  }, [juzNumber, targetSurah, pages.length])
+  }, [isJuzMode, juzNumber, targetSurah, pages.length])
 
   // Find page containing target surah - ensure it opens at Bismillah (ayah 0) or ayah 1
   useEffect(() => {
@@ -355,15 +380,15 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
     if (pageIdx >= 0) setCurrentPage(pageIdx)
   }, [targetSurah, pages])
 
-  // Save bookmark whenever page changes
+  // Save bookmark whenever page changes (only in Juz mode)
   useEffect(() => {
-    if (pages.length === 0) return
+    if (!isJuzMode || pages.length === 0) return
     db.readingBookmarks.put({
       juzNumber,
       page: currentPage,
       updatedAt: new Date().toISOString(),
     })
-  }, [juzNumber, currentPage, pages.length])
+  }, [isJuzMode, juzNumber, currentPage, pages.length])
 
   // Auto-track: mark juz as "in_progress" when content loads
   useEffect(() => {
@@ -466,12 +491,15 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
 
   if (error) {
     const isOffline = !navigator.onLine
+    const errorTitle = isJuzMode 
+      ? `Failed to load Juz ${juzNumber}`
+      : `Failed to load Surah ${SURAH_NAMES[surahNumber]?.english ?? surahNumber}`
     return (
       <div className="text-center py-12 space-y-3">
-        <p className="text-red-500 font-medium">Failed to load Juz {juzNumber}</p>
+        <p className="text-red-500 font-medium">{errorTitle}</p>
         <p className="text-sm text-muted-foreground">
           {isOffline
-            ? 'You are offline. This Juz needs to be loaded online at least once before it can be read offline.'
+            ? `You are offline. This ${isJuzMode ? 'Juz' : 'Surah'} needs to be loaded online at least once before it can be read offline.`
             : 'Check your internet connection and try again.'}
         </p>
         <button
@@ -567,6 +595,7 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
                     <p className="text-sm text-muted-foreground mt-0.5">{group.name.english}</p>
                     <button
                       onClick={() => {
+                        unlockAudioContext() // Required for iOS Safari
                         const fullGroup = surahGroups.find((g) => g.surah === group.surah)
                         const verses = (fullGroup?.ayahs ?? group.ayahs)
                           .filter((a) => !a.isBismillah && a.ayah > 0)
@@ -574,7 +603,7 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
                         toggleSurahAudio(group.surah, verses)
                       }}
                       aria-label={playingSurah === group.surah ? `Stop playing ${group.name.english}` : `Play ${group.name.english}`}
-                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-accent text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-accent text-accent hover:bg-accent hover:text-accent-foreground transition-colors relative z-10"
                     >
                       {playingSurah === group.surah ? (
                         <>
@@ -646,7 +675,9 @@ export function QuranReader({ juzNumber, targetSurah, onStartReading, onFinishRe
             {/* Last page indicator */}
             {currentPage === totalPages - 1 && (
               <div className="text-center py-4 text-sm text-muted-foreground">
-                End of Juz {juzNumber}
+                {isJuzMode 
+                  ? `End of Juz ${juzNumber}` 
+                  : `End of ${SURAH_NAMES[surahNumber]?.english ?? `Surah ${surahNumber}`}`}
               </div>
             )}
           </div>

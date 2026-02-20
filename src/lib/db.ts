@@ -47,6 +47,13 @@ export interface QuranCacheRecord {
   schemaVersion?: number // bump when API source or edition changes to force re-fetch
 }
 
+export interface SurahCacheRecord {
+  surahNumber: number // 1-114, used as PK
+  ayahs: Array<{ surah: number; ayah: number; arabic: string; translation: string; isBismillah?: boolean }>
+  fetchedAt: string
+  schemaVersion?: number
+}
+
 export interface TafsirCacheRecord {
   surahAyah: string // "2:255" — used as PK
   transliteration: string
@@ -77,6 +84,7 @@ class SabeelDB extends Dexie {
   prayerLogs!: Table<PrayerLogRecord>
   voluntaryPrayers!: Table<VoluntaryPrayerRecord>
   quranCache!: Table<QuranCacheRecord>
+  surahCache!: Table<SurahCacheRecord>
   tafsirCache!: Table<TafsirCacheRecord>
   readingBookmarks!: Table<ReadingBookmarkRecord>
 
@@ -117,6 +125,17 @@ class SabeelDB extends Dexie {
       prayerLogs: '++id, [date+prayer], syncedAt',
       voluntaryPrayers: '++id, [date+type], syncedAt',
       quranCache: 'juzNumber',
+      tafsirCache: 'surahAyah',
+      readingBookmarks: 'juzNumber',
+    })
+    this.version(7).stores({
+      quranProgress: '++id, ramadanYear, [juzId+ramadanYear], syncedAt',
+      surahProgress: '++id, ramadanYear, [surahId+ramadanYear], syncedAt',
+      adhkarSessions: '++id, [sessionDate+category], syncedAt',
+      prayerLogs: '++id, [date+prayer], syncedAt',
+      voluntaryPrayers: '++id, [date+type], syncedAt',
+      quranCache: 'juzNumber',
+      surahCache: 'surahNumber',
       tafsirCache: 'surahAyah',
       readingBookmarks: 'juzNumber',
     })
