@@ -83,6 +83,13 @@ export function QuranPage() {
     }
   }, []) // only on mount
 
+  // Scroll to top when entering reader mode
+  useEffect(() => {
+    if (readerMode) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [readerMode])
+
   // Get current reader info for tracking
   const currentJuzNumber = readerMode?.type === 'juz' ? readerMode.juzNumber : null
   // const currentSurahNumber = readerMode?.type === 'surah' ? readerMode.surahNumber : null

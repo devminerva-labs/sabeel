@@ -112,9 +112,9 @@ export function SurahList({ onSelectSurah, getSurahStatus, onCycleSurahStatus }:
 
                 {/* Names */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{surah.englishName}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{surah.transliteration}</p>
                   <p className="text-xs text-muted-foreground">
-                    {surah.transliteration} · {surah.verseCount} verses ·{' '}
+                    {surah.englishName} · {surah.verseCount} verses ·{' '}
                     <span className={surah.revelationType === 'meccan' ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}>
                       {surah.revelationType === 'meccan' ? 'Meccan' : 'Medinan'}
                     </span>
