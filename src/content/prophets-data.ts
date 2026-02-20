@@ -54,7 +54,32 @@ export const PROPHET_STORIES: ProphetStory[] = [
     ramadanLesson: "The story of Adam begins in Ramadan's spirit. Every night in Ramadan, the gates of heaven are open and the gates of hell are locked. Allah descends and calls: Is there anyone seeking forgiveness? Make the du'a of Adam. Acknowledge your wrongs without making excuses. Allah is more ready to forgive than you are to ask.",
   },
 
-  // ── 2. Idris ─────────────────────────────────────────────────
+  // ── 2. Sheeth ────────────────────────────────────────────────
+  {
+    id: 'sheeth',
+    name: 'Sheeth',
+    nameAr: 'شيث عليه السلام',
+    title: 'The Righteous Son of Adam and the Gift of Sabr',
+    summary: "Sheeth was the righteous son of Adam, born after the death of his brother Habil. Adam was granted Sheeth as a gift from Allah to carry on the legacy of righteousness and patience.",
+    surahs: [],
+    sections: [
+      {
+        heading: 'Gifted to Adam After Habil',
+        body: "After the death of Habil at the hands of his brother Qabil, Adam and Hawwa were overcome with grief. Allah blessed them with Sheeth — a name that means 'gift' or 'granted' — as a consolation for their loss. He was born in the likeness of his father Adam, unlike any other child born before him.",
+      },
+      {
+        heading: 'The Prophet of Patience',
+        body: "Sheeth was given the knowledge of patience (sabr) by Allah. The hadith literature mentions that Allah revealed to Sheeth fifty scrolls containing wisdom, guidance, and the importance of patience in all affairs. He called his people to worship Allah alone and to be patient in times of difficulty.",
+      },
+      {
+        heading: 'A Righteous Lineage',
+        body: "From Sheeth descended the lineage of all the prophets who came after him. While Qabil's descendants followed corruption and evil, the descendants of Sheeth maintained the worship of Allah. He lived a long life, calling people to righteousness, and was buried near his father Adam.",
+      },
+    ],
+    ramadanLesson: "Sheeth teaches us that after every loss comes relief, after every difficulty comes ease. In Ramadan, when you feel the pangs of hunger or the fatigue of long nights, remember the gift of patience. Allah never leaves the believers without comfort and a way forward.",
+  },
+
+  // ── 3. Idris ─────────────────────────────────────────────────
   {
     id: 'idris',
     name: 'Idris',

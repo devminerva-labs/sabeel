@@ -1,0 +1,406 @@
+// Auto-generated from Menk's Stories of the Prophets
+// Generated: 2026-02-20T09:41:58.733Z
+
+export interface VideoContent {
+  url: string
+  author: string
+  series: string
+  episode: number
+  topic: string
+  channel: string
+  source: string
+}
+
+export interface MenkVideoSeries {
+  prophetId: string
+  videos: VideoContent[]
+}
+
+export const MENK_PROPHEY_VIDEOS: Record<string, VideoContent[]> = {
+  'adam': [
+    {
+      url: 'https://www.youtube.com/watch?v=w6bX6GKqVa4',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 2,
+      topic: 'Creation Of Aadam (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=E8eUrhZjsB0',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 3,
+      topic: 'Aadam (as) on Earth - Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=8pezwHQRiUk',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 4,
+      topic: 'Aadam (as) On Earth - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'sheeth': [
+    {
+      url: 'https://www.youtube.com/watch?v=T30tVG3uKZM',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 5,
+      topic: 'Sheeth (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'idris': [
+    {
+      url: 'https://www.youtube.com/watch?v=aW-3wh27fdo',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 6,
+      topic: 'Idrees (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'nuh': [
+    {
+      url: 'https://www.youtube.com/watch?v=alyrTILC--E',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 7,
+      topic: 'Nuh (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'hud': [
+    {
+      url: 'https://www.youtube.com/watch?v=N61rddIV9_4',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 8,
+      topic: 'Hud (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'salih': [
+    {
+      url: 'https://www.youtube.com/watch?v=iZ9MomJ8gOY',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 9,
+      topic: 'Saalih (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'ibrahim': [
+    {
+      url: 'https://www.youtube.com/watch?v=Y4cUj7cTsUo',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 10,
+      topic: 'Ibraheem (as) - Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=GDl71Thr-Cc',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 11,
+      topic: 'Ibraheem (as) - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=j-1Rti9-H-k',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 12,
+      topic: 'Ibraheem (as) and Ismail (as) - Part 3',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=WssGuLR-pGQ',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 13,
+      topic: 'Ibraheem (as) - Part 4',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'ismail': [
+    {
+      url: 'https://www.youtube.com/watch?v=j-1Rti9-H-k',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 12,
+      topic: 'Ibraheem (as) and Ismail (as) - Part 3',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'yaqub': [
+    {
+      url: 'https://www.youtube.com/watch?v=_rH_FzyddkA',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 15,
+      topic: 'Yaqub (as) and Yusuf (as) Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'yusuf': [
+    {
+      url: 'https://www.youtube.com/watch?v=_rH_FzyddkA',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 15,
+      topic: 'Yaqub (as) and Yusuf (as) Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=2EmFVq-XE2U',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 16,
+      topic: 'Yusuf (as) - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=fuhUyt4FS0o',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 17,
+      topic: 'Yusuf (as) - Part 3',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'ayyub': [
+    {
+      url: 'https://www.youtube.com/watch?v=BTykaZ4S0Kc',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 18,
+      topic: 'Ayoub (as) and Yunus (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'yunus': [
+    {
+      url: 'https://www.youtube.com/watch?v=BTykaZ4S0Kc',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 18,
+      topic: 'Ayoub (as) and Yunus (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'musa': [
+    {
+      url: 'https://www.youtube.com/watch?v=eEA7wlZLrF8',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 19,
+      topic: 'Musa (as) and Haroon (as) - Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=UXlhNsSQp2Y',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 20,
+      topic: 'Musa (as) and Haroon (as) - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=V4XYisySHvM',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 21,
+      topic: 'Musa (as) and Haroon (as) - Part 3',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=D7z55sZOqBo',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 22,
+      topic: 'Musa (as) and Bani Israeel - Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=2csrHAKaZQU',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 23,
+      topic: 'Musa (as) and Bani Israeel - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=sx6DBLHH4Do',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 25,
+      topic: 'Musa, Uzair, Hizqeel, Yushua, Dawud (as) Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'harun': [
+    {
+      url: 'https://www.youtube.com/watch?v=eEA7wlZLrF8',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 19,
+      topic: 'Musa (as) and Haroon (as) - Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=UXlhNsSQp2Y',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 20,
+      topic: 'Musa (as) and Haroon (as) - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=V4XYisySHvM',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 21,
+      topic: 'Musa (as) and Haroon (as) - Part 3',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'shuayb': [
+    {
+      url: 'https://www.youtube.com/watch?v=VWiEvWgRH3U',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 24,
+      topic: 'Shu\'ayb (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'dawud': [
+    {
+      url: 'https://www.youtube.com/watch?v=sx6DBLHH4Do',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 25,
+      topic: 'Musa, Uzair, Hizqeel, Yushua, Dawud (as) Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=vYNmlWjz1h4',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 26,
+      topic: 'Dawud (as) - Part 2',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'sulayman': [
+    {
+      url: 'https://www.youtube.com/watch?v=lELwUKehFsU',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 27,
+      topic: 'Sulayman (as) - Part 1',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+    {
+      url: 'https://www.youtube.com/watch?v=PUyw3voIRIY',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 28,
+      topic: 'Sulayman - P2, Ilyaas, Dhul Kifl, Zakariyyah, Yahya (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'ilyas': [
+    {
+      url: 'https://www.youtube.com/watch?v=PUyw3voIRIY',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 28,
+      topic: 'Sulayman - P2, Ilyaas, Dhul Kifl, Zakariyyah, Yahya (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'dhulkifl': [
+    {
+      url: 'https://www.youtube.com/watch?v=PUyw3voIRIY',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 28,
+      topic: 'Sulayman - P2, Ilyaas, Dhul Kifl, Zakariyyah, Yahya (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'zakariyya': [
+    {
+      url: 'https://www.youtube.com/watch?v=PUyw3voIRIY',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 28,
+      topic: 'Sulayman - P2, Ilyaas, Dhul Kifl, Zakariyyah, Yahya (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'yahya': [
+    {
+      url: 'https://www.youtube.com/watch?v=PUyw3voIRIY',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 28,
+      topic: 'Sulayman - P2, Ilyaas, Dhul Kifl, Zakariyyah, Yahya (as)',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+  'isa': [
+    {
+      url: 'https://www.youtube.com/watch?v=PeRtQowNUv4',
+      author: 'Mufti Ismail Menk',
+      series: 'Stories of the Prophets',
+      episode: 29,
+      topic: 'Isa (as) Jesus pbuh',
+      channel: 'soukISLAM',
+      source: 'youtube',
+    },
+  ],
+}
