@@ -1,19 +1,23 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useLastReadingBookmark } from '@/hooks/useLastReadingBookmark'
 import { JUZ_DATA } from '@/content/juz-data'
 import { ArabicText } from '@/components/ArabicText'
 import { ProgressRing } from '@/components/ProgressRing'
+import { LaylatulQadrBanner } from '@/components/LaylatulQadrBanner'
 import { useQuranProgress } from '@/hooks/useQuranProgress'
 import { useRamadanContext } from '@/hooks/useRamadanContext'
 import { usePrayerLog } from '@/hooks/usePrayerLog'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useAuth } from '@/hooks/useAuth'
 import { calculateCatchUp } from '@/lib/catch-up'
+import { getLaylahPhase } from '@/lib/ramadan-dates'
+import { getPrayerTimes } from '@/lib/prayer-times'
 import { db } from '@/lib/db'
 import type { AdhkarCategory } from '@/types'
 
-const ADHKAR_CATEGORIES: AdhkarCategory[] = ['morning', 'evening', 'after_prayer', 'before_sleep', 'eating', 'home', 'quran_dua', 'anxiety']
+const ADHKAR_CATEGORIES: AdhkarCategory[] = ['morning', 'evening', 'after_prayer', 'before_sleep', 'eating', 'home', 'quran_dua', 'anxiety', 'laylatul_qadr']
 
 function todayISO() {
   return new Date().toLocaleDateString('sv-SE')
@@ -38,6 +42,25 @@ export function DashboardPage() {
   const { completedCount: adhkarDone, total: adhkarTotal } = useAdhkarTodayCount()
   const lastBookmark = useLastReadingBookmark()
 
+  // Apply Laylatul Qadr theme during last 10 nights
+  useEffect(() => {
+    if (!dayNumber) {
+      document.documentElement.classList.remove('laylah-mode')
+      return
+    }
+    try {
+      const maghrib = getPrayerTimes(new Date()).maghrib
+      const phase = getLaylahPhase(dayNumber, new Date(), maghrib)
+      document.documentElement.classList.toggle('laylah-mode', phase === 'active')
+    } catch {
+      const phase = getLaylahPhase(dayNumber)
+      document.documentElement.classList.toggle('laylah-mode', phase === 'active')
+    }
+    return () => {
+      document.documentElement.classList.remove('laylah-mode')
+    }
+  }, [dayNumber])
+
   return (
     <div className="space-y-6">
       {/* PWA install prompt */}
@@ -48,6 +71,11 @@ export function DashboardPage() {
         >
           Install Sabeel for quick access
         </button>
+      )}
+
+      {/* Laylatul Qadr banner — shown during last 10 nights or countdown before them */}
+      {ramadanYear && dayNumber && dayNumber >= 15 && (
+        <LaylatulQadrBanner dayNumber={dayNumber} />
       )}
 
       <div className="text-center space-y-2">

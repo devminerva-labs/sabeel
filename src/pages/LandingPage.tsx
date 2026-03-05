@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { getCurrentRamadanYear, getRamadanDayNumber, getLaylahPhase } from '@/lib/ramadan-dates'
 
 function Hadith({ arabic, text, source }: { arabic?: string; text: string; source: string }) {
   return (
@@ -22,7 +23,19 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
   )
 }
 
+function getLaylahHeroSubtitle(): string {
+  const year = getCurrentRamadanYear()
+  if (!year) return 'A companion for those who want to make Ramadan count.'
+  const dayNumber = getRamadanDayNumber(year)
+  if (!dayNumber) return 'A companion for those who want to make Ramadan count.'
+  const phase = getLaylahPhase(dayNumber)
+  if (phase === 'active') return 'The last 10 nights have begun. Every odd night could be Laylatul Qadr.'
+  return 'A companion for those who want to make Ramadan count.'
+}
+
 export function LandingPage() {
+  const heroSubtitle = getLaylahHeroSubtitle()
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-2xl mx-auto px-6 pb-20">
@@ -38,7 +51,7 @@ export function LandingPage() {
               <p dir="rtl" lang="ar" className="text-xl text-muted-foreground">سبيل</p>
             </div>
             <p className="text-lg text-muted-foreground max-w-sm mx-auto leading-relaxed pt-2">
-              A companion for those who want to make Ramadan count.
+              {heroSubtitle}
             </p>
           </div>
 
@@ -145,6 +158,49 @@ export function LandingPage() {
               text="Whoever reads one letter from the Book of Allah will receive one good deed, and that good deed will be multiplied by ten."
               source="Jami at-Tirmidhi 2910, narrated by Ibn Masud (may Allah be pleased with him)"
             />
+          </div>
+        </Section>
+
+        {/* The Last Ten Nights */}
+        <Section>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-foreground">The Last Ten Nights</h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Of all the days and nights in the Islamic calendar, none carry the weight of the last
+              ten nights of Ramadan. Somewhere within them is a single night that the Quran describes
+              as better than a thousand months — eighty-three years of continuous worship, compressed
+              into one evening between Maghrib and Fajr.
+            </p>
+
+            <Hadith
+              arabic="إِنَّا أَنزَلْنَاهُ فِي لَيْلَةِ الْقَدْرِ ۝ وَمَا أَدْرَاكَ مَا لَيْلَةُ الْقَدْرِ ۝ لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ أَلْفِ شَهْرٍ ۝ تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ رَبِّهِم مِّن كُلِّ أَمْرٍ ۝ سَلَامٌ هِيَ حَتَّىٰ مَطْلَعِ الْفَجْرِ"
+              text="Indeed, We sent the Quran down during the Night of Decree. And what can make you know what is the Night of Decree? The Night of Decree is better than a thousand months. The angels and the Spirit descend therein by permission of their Lord for every matter. Peace it is until the emergence of dawn."
+              source="Quran — Surah Al-Qadr, 97:1-5"
+            />
+
+            <Hadith
+              arabic="مَنْ قَامَ لَيْلَةَ الْقَدْرِ إِيمَانًا وَاحْتِسَابًا، غُفِرَ لَهُ مَا تَقَدَّمَ مِنْ ذَنْبِهِ"
+              text="Whoever stands in prayer during Laylatul Qadr with faith and hoping for reward, all his previous sins will be forgiven."
+              source="Sahih al-Bukhari 2014, Sahih Muslim 760"
+            />
+
+            <p className="text-base text-muted-foreground leading-relaxed">
+              The Prophet (ﷺ) was asked by Aisha (may Allah be pleased with her): if she knew which
+              night was Laylatul Qadr, what should she say? He taught her one dua. That dua is still
+              the answer.
+            </p>
+
+            <Hadith
+              arabic="اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي"
+              text="O Allah, You are Pardoning, You love to pardon, so pardon me."
+              source="Jami at-Tirmidhi 3513 — Hasan Sahih, narrated by Aisha (may Allah be pleased with her)"
+            />
+
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Sabeel is built for Ramadan. But it is built especially for these ten nights. The last
+              third of each odd night is the window. The forgiveness is real. The opportunity closes
+              at Fajr.
+            </p>
           </div>
         </Section>
 

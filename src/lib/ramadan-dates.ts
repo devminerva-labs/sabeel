@@ -36,3 +36,56 @@ export function getRamadanDayNumber(year: RamadanYear): number | null {
   if (diff < 0 || diff >= season.days) return null
   return diff + 1
 }
+
+// The range of valid Laylatul Qadr night numbers (last 10 nights of Ramadan)
+export type LaylahNight = 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30
+
+/**
+ * Returns the current Islamic night number (1-30), accounting for the fact
+ * that the Islamic night starts at Maghrib, not midnight.
+ *
+ * If maghrib is provided and now >= maghrib, the night belongs to dayNumber + 1.
+ * Optional `now` parameter makes this testable without mocking Date.
+ */
+export function getLaylahNightNumber(
+  dayNumber: number,
+  now: Date = new Date(),
+  maghrib?: Date,
+): LaylahNight | null {
+  const afterMaghrib = maghrib ? now >= maghrib : false
+  const nightNumber = dayNumber + (afterMaghrib ? 1 : 0)
+  if (nightNumber < 21 || nightNumber > 30) return null
+  return nightNumber as LaylahNight
+}
+
+/**
+ * Returns 'active' when the current Islamic night is within the last 10 nights
+ * (nights 21-30), 'pre' when Ramadan is ongoing but last 10 haven't started,
+ * or null when not in Ramadan.
+ */
+export function getLaylahPhase(
+  dayNumber: number | null,
+  now: Date = new Date(),
+  maghrib?: Date,
+): 'pre' | 'active' | null {
+  if (!dayNumber) return null
+  const afterMaghrib = maghrib ? now >= maghrib : false
+  const islamicNight = dayNumber + (afterMaghrib ? 1 : 0)
+  if (islamicNight >= 21) return 'active'
+  return 'pre'
+}
+
+/** Returns true if the given night number is an odd night (potential Laylatul Qadr) */
+export function isOddLaylahNight(nightNumber: LaylahNight): boolean {
+  return nightNumber % 2 === 1
+}
+
+/**
+ * How many nights remain until the last 10 nights begin.
+ * Returns 0 when already in the last 10 nights.
+ */
+export function nightsUntilLastTen(dayNumber: number, maghrib?: Date, now: Date = new Date()): number {
+  const afterMaghrib = maghrib ? now >= maghrib : false
+  const islamicNight = dayNumber + (afterMaghrib ? 1 : 0)
+  return Math.max(0, 21 - islamicNight)
+}

@@ -9,6 +9,7 @@ export type AdhkarCategory =
   | 'eating'
   | 'home'
   | 'quran_dua'
+  | 'laylatul_qadr'
 
 // Per-dhikr counter counts: { "morning-01": 3, "morning-02": 1 }
 export type AdhkarCounts = Record<string, number>

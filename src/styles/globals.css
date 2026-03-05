@@ -62,6 +62,51 @@
   --color-ring: #6ee7a0;
 }
 
+/* Laylatul Qadr night theme — activated during last 10 nights of Ramadan */
+.laylah-mode {
+  --color-background: #0b0f1f;
+  --color-foreground: #f0e6c8;
+  --color-primary: #c9a84c;
+  --color-primary-foreground: #0b0f1f;
+  --color-secondary: #a07c38;
+  --color-secondary-foreground: #0b0f1f;
+  --color-accent: #e8b94f;
+  --color-accent-foreground: #0b0f1f;
+  --color-muted: #141928;
+  --color-muted-foreground: #8a8070;
+  --color-card: #111526;
+  --color-border: #2a3158;
+  --color-ring: #c9a84c;
+
+  --color-calm-bg: #0d1230;
+  --color-calm-text: #c9a84c;
+  --color-calm-accent: #e8b94f;
+}
+
+/* Star field — position:fixed on body::before so it doesn't repaint on scroll */
+.laylah-mode body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 8%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 30%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 18%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82% 45%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 90% 10%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 65%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 75%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 60%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 72%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(2px 2px at 48% 50%, rgba(201,168,76,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5% 88%, rgba(255,255,255,0.3) 0%, transparent 100%);
+}
+
 /* Arabic font faces */
 @font-face {
   font-family: 'Amiri Quran';
