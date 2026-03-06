@@ -16,6 +16,15 @@ import { juzId, surahId, type JuzId } from '@/types'
 import { JUZ_DATA } from '@/content/juz-data'
 import { SURAH_DATA } from '@/content/surah-data'
 import { getJuzCached, precacheAllJuz, areAllJuzCached } from '@/lib/api/quran.api'
+import { QuranCompletionModal } from '@/components/QuranCompletionModal'
+
+const KHATM_KEY = 'sabeel-khatm-seen'
+function hasSeenKhatm(year: number): boolean {
+  try { return localStorage.getItem(`${KHATM_KEY}-${year}`) === '1' } catch { return false }
+}
+function markKhatmSeen(year: number): void {
+  try { localStorage.setItem(`${KHATM_KEY}-${year}`, '1') } catch { /* storage restricted */ }
+}
 
 type QuranView = 'juz' | 'surah'
 
@@ -293,6 +302,18 @@ function QuranGridView({
   const { completedCount, totalJuz } = useQuranProgress(ramadanYear)
   const catchUp = dayNumber ? calculateCatchUp(completedCount, dayNumber, totalDays) : null
 
+  // Show completion modal once when all 30 juz are complete.
+  // Uses localStorage as the authoritative "already seen" guard rather than a
+  // prev-value ref, so the modal fires correctly whether the user completes the
+  // last juz via grid tap OR via the reader (which unmounts this component).
+  const [showKhatmModal, setShowKhatmModal] = useState(false)
+  useEffect(() => {
+    if (completedCount === 30 && !hasSeenKhatm(ramadanYear)) {
+      markKhatmSeen(ramadanYear)
+      setShowKhatmModal(true)
+    }
+  }, [completedCount, ramadanYear])
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -336,6 +357,8 @@ function QuranGridView({
           onCycleSurahStatus={(id) => surahProgress.cycleStatus(surahId(id))}
         />
       )}
+
+      <QuranCompletionModal open={showKhatmModal} onClose={() => setShowKhatmModal(false)} />
     </div>
   )
 }

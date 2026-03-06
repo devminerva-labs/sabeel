@@ -221,7 +221,16 @@ function DashboardProgress({
       <div className="flex justify-center">
         <ProgressRing completed={completedCount} total={totalJuz} />
       </div>
-      {catchUp && (
+      {completedCount === 30 ? (
+        <div className="rounded-xl border border-status-completed/40 bg-status-completed/10 px-4 py-3 space-y-1 text-center">
+          <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+            Masha'Allah — Khatm complete
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Surah Reflection coming soon — ponder every surah in depth
+          </p>
+        </div>
+      ) : catchUp && (
         <p
           className={`text-center text-sm font-medium ${
             catchUp.isOnTrack ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
