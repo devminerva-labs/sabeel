@@ -112,7 +112,7 @@ export function AuthCallbackPage() {
       abortControllerRef.current?.abort()
       innerCleanupRef.current?.()
     }
-  }, [navigate, searchParams])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
     return (
