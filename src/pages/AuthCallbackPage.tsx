@@ -101,11 +101,16 @@ export function AuthCallbackPage() {
       }
     }
 
-    handleAuthCallback()
+    // handleAuthCallback returns a cleanup fn in the subscription-listening branch.
+    // Use a ref so the effect cleanup captures the container, not the value —
+    // avoiding a race where the component unmounts before the Promise resolves.
+    const innerCleanupRef = { current: null as (() => void) | null }
+    handleAuthCallback().then((fn) => { if (fn) innerCleanupRef.current = fn })
 
     // Cleanup
     return () => {
       abortControllerRef.current?.abort()
+      innerCleanupRef.current?.()
     }
   }, [navigate, searchParams])
 

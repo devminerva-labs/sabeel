@@ -119,9 +119,15 @@ export async function getMyHalaqahs(
 
     if (!data || data.length === 0) return { memberships: [] }
 
-    const memberships = (data as unknown as Array<{ halaqahs: Halaqah; nickname: string }>).map(
-      (row) => ({ halaqah: row.halaqahs, nickname: row.nickname }),
-    )
+    // Supabase types !inner joins as arrays but returns an object at runtime;
+    // handle both to satisfy the type checker and be future-proof.
+    const memberships = data
+      .filter((row) => row?.halaqahs != null && row?.nickname)
+      .map((row) => ({
+        halaqah: (Array.isArray(row.halaqahs) ? row.halaqahs[0] : row.halaqahs) as Halaqah,
+        nickname: row.nickname as string,
+      }))
+      .filter((m): m is HalaqahMembership => m.halaqah != null)
     return { memberships }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

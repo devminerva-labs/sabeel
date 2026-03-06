@@ -41,14 +41,16 @@ export function usePrayerLog(userId?: string | null) {
   // Cycles: untracked → prayed → missed → (delete = untracked)
   const togglePrayer = useCallback(
     async (name: PrayerName) => {
+      // Read date fresh at call time to avoid stale closure if midnight passes without re-render
+      const currentDate = todayISO()
       const now = new Date().toISOString()
       const existing = await db.prayerLogs
         .where('[date+prayer]')
-        .equals([date, name])
+        .equals([currentDate, name])
         .first()
 
       if (!existing) {
-        const record = { date, prayer: name, status: 'prayed' as PrayerStatus, prayedAt: now, updatedAt: now }
+        const record = { date: currentDate, prayer: name, status: 'prayed' as PrayerStatus, prayedAt: now, updatedAt: now }
         await db.prayerLogs.add(record)
         if (userId) syncPrayerLog(userId, record).catch(console.error)
       } else if (existing.status === 'prayed') {
@@ -60,15 +62,15 @@ export function usePrayerLog(userId?: string | null) {
           syncedAt: undefined,
         })
         if (userId) {
-          syncPrayerLog(userId, { date, prayer: name, status: 'missed', updatedAt }).catch(console.error)
+          syncPrayerLog(userId, { date: currentDate, prayer: name, status: 'missed', updatedAt }).catch(console.error)
         }
       } else {
         // missed → delete (untracked)
         await db.prayerLogs.delete(existing.id!)
-        if (userId) deletePrayerLog(userId, date, name).catch(console.error)
+        if (userId) deletePrayerLog(userId, currentDate, name).catch(console.error)
       }
     },
-    [date, userId],
+    [userId],
   )
 
   const prayedCount = records.filter((r) => r.status === 'prayed').length

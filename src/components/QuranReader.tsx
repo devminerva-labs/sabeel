@@ -318,6 +318,12 @@ export function QuranReader(props: QuranReaderProps) {
   const startCalledRef = useRef(false)
   const finishCalledRef = useRef(false)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  // Reset tracking refs when the content changes (new juz or surah selected)
+  useEffect(() => {
+    startCalledRef.current = false
+    finishCalledRef.current = false
+  }, [juzNumber, surahNumber])
   const pageContainerRef = useRef<HTMLDivElement>(null)
 
   // Group ayahs by surah
@@ -380,9 +386,11 @@ export function QuranReader(props: QuranReaderProps) {
     if (pageIdx >= 0) setCurrentPage(pageIdx)
   }, [targetSurah, pages])
 
-  // Save bookmark whenever page changes (only in Juz mode)
+  // Save bookmark whenever page changes (only in Juz mode).
+  // Only save after the bookmark restore has completed to avoid overwriting
+  // the saved position with page 0 on initial mount.
   useEffect(() => {
-    if (!isJuzMode || pages.length === 0) return
+    if (!isJuzMode || pages.length === 0 || !bookmarkRestoredRef.current) return
     db.readingBookmarks.put({
       juzNumber,
       page: currentPage,
@@ -531,9 +539,7 @@ export function QuranReader(props: QuranReaderProps) {
     // Show header if the first verse of this group is the first real verse (ayah 0 or 1)
     // or if it's a bismillah
     if (firstAyah.isBismillah || firstAyah.ayah <= 1) return true
-    // Also show if it's the first occurrence of this surah in the entire juz
-    // and the previous page doesn't contain this surah
-    if (currentPage === 0) return true
+    // Show if the previous page doesn't contain this surah (i.e., surah begins on this page)
     const prevPageAyahs = pages[currentPage - 1] ?? []
     return !prevPageAyahs.some((a) => a.surah === group.surah)
   }
@@ -552,6 +558,11 @@ export function QuranReader(props: QuranReaderProps) {
 
   return (
     <>
+      {/* Audio play error — shown persistently until dismissed or audio plays again */}
+      {audioPlayError && playingSurah === null && (
+        <p className="text-xs text-red-500 text-center px-1">{audioPlayError}</p>
+      )}
+
       {/* Header with font size controls */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-2">
@@ -626,9 +637,6 @@ export function QuranReader(props: QuranReaderProps) {
                         </>
                       )}
                     </button>
-                    {audioPlayError && playingSurah === null && (
-                      <p className="text-xs text-red-500 mt-1">{audioPlayError}</p>
-                    )}
                   </div>
                 )}
 

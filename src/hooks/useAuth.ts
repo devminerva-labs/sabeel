@@ -21,13 +21,12 @@ export function useAuth() {
       return
     }
 
-    // Load existing session
-    supabase.auth.getSession().then(({ data }) => {
-      setState({ user: data.session?.user ?? null, session: data.session, isLoading: false })
-    })
+    // Track whether onAuthStateChange has already fired so getSession doesn't overwrite fresher state
+    let authStateFired = false
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Listen for auth changes first — this is the authoritative source of session state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      authStateFired = true
       const user = session?.user ?? null
       setState({ user, session, isLoading: false })
 
@@ -35,10 +34,19 @@ export function useAuth() {
         await ensureProfile(user.id, user.email ?? '')
         // Push any local progress accumulated before creating an account
         syncLocalProgress(user.id).catch(console.error)
-        // Pull today's prayers + adhkar so dashboard counts reflect server state
-        const today = new Date().toLocaleDateString('sv-SE')
-        pullPrayerLogs(user.id, today).catch(console.error)
-        pullAdhkarSessions(user.id, today).catch(console.error)
+        // Pull today's prayers + adhkar only on actual sign-in (not on token refresh or other events)
+        if (event === 'SIGNED_IN') {
+          const today = new Date().toLocaleDateString('sv-SE')
+          pullPrayerLogs(user.id, today).catch(console.error)
+          pullAdhkarSessions(user.id, today).catch(console.error)
+        }
+      }
+    })
+
+    // Load existing session as a fallback for the initial load — skip if onAuthStateChange already fired
+    supabase.auth.getSession().then(({ data }) => {
+      if (!authStateFired) {
+        setState({ user: data.session?.user ?? null, session: data.session, isLoading: false })
       }
     })
 

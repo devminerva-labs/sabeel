@@ -107,6 +107,13 @@ export function LaylatulQadrPage() {
   const nightNumber = dayNumber ? getLaylahNightNumber(dayNumber, now, maghrib) : null
   const isOdd = nightNumber ? isOddLaylahNight(nightNumber) : false
 
+  // Context banner: shows when outside the last 10 nights so users understand the page
+  const contextNote = !dayNumber
+    ? 'Not currently in Ramadan — this guide is available year-round for preparation.'
+    : dayNumber < 21
+      ? `Day ${dayNumber} of Ramadan — the last 10 nights begin on night 21.`
+      : null
+
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
@@ -128,6 +135,12 @@ export function LaylatulQadrPage() {
           )}
         </div>
       </div>
+
+      {contextNote && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground text-center">
+          {contextNote}
+        </div>
+      )}
 
       {/* Primary Dua — always at top */}
       <div className="space-y-2">

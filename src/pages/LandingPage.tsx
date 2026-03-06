@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { getCurrentRamadanYear, getRamadanDayNumber, getLaylahPhase } from '@/lib/ramadan-dates'
 
 function Hadith({ arabic, text, source }: { arabic?: string; text: string; source: string }) {
   return (
@@ -23,35 +22,25 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
   )
 }
 
-function getLaylahHeroSubtitle(): string {
-  const year = getCurrentRamadanYear()
-  if (!year) return 'A companion for those who want to make Ramadan count.'
-  const dayNumber = getRamadanDayNumber(year)
-  if (!dayNumber) return 'A companion for those who want to make Ramadan count.'
-  const phase = getLaylahPhase(dayNumber)
-  if (phase === 'active') return 'The last 10 nights have begun. Every odd night could be Laylatul Qadr.'
-  return 'A companion for those who want to make Ramadan count.'
-}
-
 export function LandingPage() {
-  const heroSubtitle = getLaylahHeroSubtitle()
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-2xl mx-auto px-6 pb-20">
 
         {/* Hero */}
         <div className="pt-16 pb-12 space-y-8">
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-4">
             <p dir="rtl" lang="ar" className="text-2xl text-muted-foreground">
               بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
             </p>
-            <div className="space-y-1">
-              <h1 className="text-5xl font-bold tracking-tight text-foreground">Sabeel</h1>
-              <p dir="rtl" lang="ar" className="text-xl text-muted-foreground">سبيل</p>
+            <div className="space-y-2">
+              <p dir="rtl" lang="ar" className="text-5xl text-foreground leading-loose">
+                لَيْلَةُ الْقَدْرِ
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">The Night of Power</h1>
             </div>
-            <p className="text-lg text-muted-foreground max-w-sm mx-auto leading-relaxed pt-2">
-              {heroSubtitle}
+            <p className="text-lg text-muted-foreground max-w-sm mx-auto leading-relaxed pt-1">
+              Better than a thousand months. The greatest opportunity of the year begins at Maghrib.
             </p>
           </div>
 
@@ -65,79 +54,188 @@ export function LandingPage() {
           </div>
         </div>
 
+        {/* The Night — Surah Al-Qadr */}
+        <Section>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-foreground">The Night Allah Described</h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Allah did not leave us to guess at the importance of this night. He revealed an entire
+              surah about it — five ayaat that have been recited by every generation of Muslims since
+              the first revelation in Makkah. These are among the most weight-bearing words in the Quran.
+            </p>
+
+            <Hadith
+              arabic="إِنَّا أَنزَلْنَاهُ فِي لَيْلَةِ الْقَدْرِ ۝ وَمَا أَدْرَاكَ مَا لَيْلَةُ الْقَدْرِ ۝ لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ أَلْفِ شَهْرٍ ۝ تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ رَبِّهِم مِّن كُلِّ أَمْرٍ ۝ سَلَامٌ هِيَ حَتَّىٰ مَطْلَعِ الْفَجْرِ"
+              text="Indeed, We sent the Quran down during the Night of Decree. And what can make you know what is the Night of Decree? The Night of Decree is better than a thousand months. The angels and the Spirit descend therein by permission of their Lord for every matter. Peace it is until the emergence of dawn."
+              source="Quran — Surah Al-Qadr, 97:1-5"
+            />
+
+            <p className="text-base text-muted-foreground leading-relaxed">
+              A thousand months is eighty-three years and four months. A single night of sincere
+              worship outweighs a lifetime of ordinary days. The Quran does not say &ldquo;approximately&rdquo;
+              or &ldquo;perhaps.&rdquo; It says: better than a thousand months.
+            </p>
+          </div>
+        </Section>
+
         {/* What it is */}
         <Section>
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">What is Sabeel</h2>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-foreground">What Laylatul Qadr Is</h2>
             <p className="text-base text-muted-foreground leading-relaxed">
-              Sabeel is a minimal Ramadan companion. It helps you read and track the Quran
-              by juz, maintain your five daily prayers, and complete your morning, evening,
-              and post-prayer adhkar.
+              Laylatul Qadr — the Night of Decree or Night of Power — is the night on which the Quran
+              was first revealed to the Prophet Muhammad (ﷺ) through Jibreel (peace be upon him).
+              It falls within the last ten nights of Ramadan, and the Prophet (ﷺ) taught us to seek
+              it specifically in the odd nights: the 21st, 23rd, 25th, 27th, and 29th.
             </p>
+
+            <Hadith
+              text="Seek it (Laylatul Qadr) in the odd nights of the last ten nights of Ramadan."
+              source="Sahih al-Bukhari 2017"
+            />
+
             <p className="text-base text-muted-foreground leading-relaxed">
-              There are no accounts, no advertisements, no social feeds. It runs entirely
-              on your device, works offline, and stores nothing outside your browser.
+              The exact night is hidden. This is by design. The concealment is a mercy — it compels
+              the believer to give every one of the ten nights its full due, rather than treating nine
+              of them as ordinary. The Prophet (ﷺ) himself intensified his worship across all ten,
+              not just the one.
             </p>
-            <div className="pt-2 space-y-2">
+
+            <Hadith
+              arabic="كَانَ النَّبِيُّ ﷺ إِذَا دَخَلَ الْعَشْرُ شَدَّ مِئْزَرَهُ، وَأَحْيَا لَيْلَهُ، وَأَيْقَظَ أَهْلَهُ"
+              text="When the last ten days began, the Prophet (ﷺ) would tighten his waist-wrapper, stay up at night, and wake his family."
+              source="Sahih al-Bukhari 2024, Sahih Muslim 1174 — narrated by Aisha (may Allah be pleased with her)"
+            />
+          </div>
+        </Section>
+
+        {/* The Promise */}
+        <Section>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-foreground">The Promise</h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              The Prophet (ﷺ) did not describe Laylatul Qadr in vague or qualified terms. He gave
+              a direct, unconditional promise to anyone who stands in prayer on this night with
+              sincere belief and hoping for reward from Allah alone.
+            </p>
+
+            <Hadith
+              arabic="مَنْ قَامَ لَيْلَةَ الْقَدْرِ إِيمَانًا وَاحْتِسَابًا، غُفِرَ لَهُ مَا تَقَدَّمَ مِنْ ذَنْبِهِ"
+              text="Whoever stands in prayer during Laylatul Qadr with faith and hoping for reward, all his previous sins will be forgiven."
+              source="Sahih al-Bukhari 2014, Sahih Muslim 760"
+            />
+
+            <p className="text-base text-muted-foreground leading-relaxed">
+              All previous sins. Not some. Not the minor ones. All of them — forgiven in a single
+              night between Maghrib and Fajr. This is the magnitude of what Allah has made available
+              to every Muslim who is alive during these nights.
+            </p>
+
+            <Hadith
+              text="The sign of Laylatul Qadr is that it is a serene, clear night — neither hot nor cold — and the sun rises the following morning faint and reddish, without rays."
+              source="Sahih Ibn Khuzaymah 2190, graded Hasan"
+            />
+          </div>
+        </Section>
+
+        {/* The Dua */}
+        <Section>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-foreground">The One Dua</h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Aisha (may Allah be pleased with her) — the wife of the Prophet (ﷺ) who knew him
+              most intimately — asked him a direct question: if she knew which night was Laylatul
+              Qadr, what should she say? He did not give her a long list. He taught her one dua.
+              That answer is still the answer for every Muslim who asks the same question today.
+            </p>
+
+            <div className="rounded-xl border border-accent/40 bg-accent/5 p-6 space-y-4 text-center">
+              <p dir="rtl" lang="ar" className="text-2xl text-foreground leading-loose">
+                اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي
+              </p>
+              <p className="text-base text-muted-foreground italic">
+                Allāhumma innaka ʿAfuwwun tuḥibbul-ʿafwa faʿfu ʿannī
+              </p>
+              <p className="text-base text-foreground">
+                &ldquo;O Allah, You are Pardoning, You love to pardon, so pardon me.&rdquo;
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Jami at-Tirmidhi 3513 — Hasan Sahih, narrated by Aisha (may Allah be pleased with her)
+              </p>
+            </div>
+
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Repeat it throughout the night. In sujud. Between rakats. After every prayer. In the
+              last third before Fajr, when Allah descends to the lowest heaven and asks: is there
+              anyone seeking forgiveness that I may forgive them?
+            </p>
+
+            <Hadith
+              text="Our Lord, Blessed and Most High, descends every night to the lowest heaven when the last third of the night remains, and He says: Who is calling upon Me that I may answer him? Who is asking from Me that I may give him? Who is seeking My forgiveness that I may forgive him?"
+              source="Sahih al-Bukhari 1145, Sahih Muslim 758"
+            />
+          </div>
+        </Section>
+
+        {/* What to do */}
+        <Section>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-foreground">What to Do These Nights</h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              The Prophet (ﷺ) did not spend the last ten nights passively hoping. He structured
+              them. He intensified. He stayed up. He woke his family. There is a pattern in how
+              the righteous have approached these nights across every generation, and it is not
+              complicated.
+            </p>
+
+            <div className="space-y-4">
               {[
-                'Quran reader with Uthmani script and juz-by-juz tracking',
-                'Daily prayer log for all five salah',
-                'Morning, evening, after-prayer, pre-sleep, and anxiety adhkar',
-                'Ramadan progress tracker across 30 juz',
-                'Works offline — no internet required after first load',
+                {
+                  title: 'Qiyam ul-Layl — Night Prayer',
+                  body: 'Stand in prayer after Isha and before Fajr. Even two rakats in the last third of the night, prayed with presence and sincerity, carry enormous weight. The Prophet (ﷺ) prayed in sets of two, ending with Witr.',
+                },
+                {
+                  title: 'The Dua of These Nights',
+                  body: 'Repeat the dua Aisha (RA) was taught — Allāhumma innaka ʿAfuwwun — throughout the night. In sujud, between tashahhud and tasleem, in the last third. Ask for pardon directly and persistently.',
+                },
+                {
+                  title: 'Dhikr and Istighfar',
+                  body: 'Fill the time between prayers with remembrance. SubhanAllah. Alhamdulillah. Allahu Akbar. Astaghfirullah. La ilaha illallah. These are light on the tongue and heavy on the scale.',
+                },
+                {
+                  title: 'Recitation of the Quran',
+                  body: 'Read slowly and with reflection. Surah Al-Qadr (97) about this very night. Surah Al-Mulk (67), which the Prophet (ﷺ) never slept without. Surah Al-Muzzammil (73) on night prayer. Whatever opens your heart.',
+                },
+                {
+                  title: "Iʿtikaf — Seclusion in the Masjid",
+                  body: "The Prophet (ﷺ) observed Iʿtikaf in the last ten days of Ramadan every year until he passed, then his wives continued after him. If possible, even a few hours of intentional seclusion and worship carries the spirit of it.",
+                },
               ].map((item) => (
-                <div key={item} className="flex gap-3 items-start">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-                  <p className="text-base text-muted-foreground">{item}</p>
+                <div key={item.title} className="space-y-1">
+                  <p className="text-base font-semibold text-foreground">{item.title}</p>
+                  <p className="text-base text-muted-foreground leading-relaxed">{item.body}</p>
                 </div>
               ))}
             </div>
+
+            <Hadith
+              arabic="أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ"
+              text="The most beloved deeds to Allah are the most consistent, even if they are small."
+              source="Sahih al-Bukhari 6465, narrated by Aisha (may Allah be pleased with her)"
+            />
           </div>
         </Section>
 
-        {/* Why it was built */}
-        <Section>
-          <div className="space-y-5">
-            <h2 className="text-2xl font-semibold text-foreground">Why it was built</h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Ramadan after Ramadan passes with sincere intentions and little to show for
-              them. The Quran sits untouched after the second week. The adhkar are remembered
-              some mornings and forgotten most. The prayers are logged in the mind but not
-              truly accounted for.
-            </p>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Sabeel exists because accountability, even private accountability, changes
-              behavior. Seeing that seven juz remain on day twenty creates urgency that
-              good intentions alone do not. Seeing that morning adhkar has been completed
-              twelve days running creates the momentum to complete it on the thirteenth.
-            </p>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              The scholars of the ummah have written at length about the virtue of structure
-              in worship. The Companions did not approach Ramadan casually. They prepared
-              months in advance. They completed the Quran multiple times. They gave every
-              night its due. Sabeel is an attempt to make that level of structure accessible
-              to an ordinary person with an ordinary life.
-            </p>
-
-            <div className="pt-2">
-              <Hadith
-                arabic="أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ"
-                text="The most beloved deeds to Allah are the most consistent, even if they are small."
-                source="Sahih al-Bukhari 6465, narrated by Aisha (may Allah be pleased with her)"
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* The Quran and Ramadan */}
+        {/* The Quran's connection */}
         <Section>
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-foreground">The Quran and Ramadan</h2>
+            <h2 className="text-2xl font-semibold text-foreground">The Quran and This Night</h2>
             <p className="text-base text-muted-foreground leading-relaxed">
-              Ramadan is the month in which the Quran was revealed. The connection between
-              this month and this book is not incidental. It is foundational. Every year,
-              Jibreel (peace be upon him) would descend and review the entire Quran with
-              the Prophet (ﷺ). In the final year of his life, they reviewed it twice.
+              The Quran was not revealed over years on ordinary nights. It began on Laylatul Qadr.
+              The connection between this book and this night is not incidental — it is the origin
+              of everything that followed. Every year, Jibreel (peace be upon him) would descend
+              and review the entire Quran with the Prophet (ﷺ). In the final year of his life,
+              they reviewed it twice.
             </p>
 
             <Hadith
@@ -147,10 +245,9 @@ export function LandingPage() {
             />
 
             <p className="text-base text-muted-foreground leading-relaxed">
-              The division of the Quran into thirty juz was established precisely to
-              facilitate its completion during Ramadan — one juz per day over thirty days.
-              This practice is among the most enduring traditions of the Muslim ummah and
-              one that Sabeel is built around.
+              To recite the Quran on Laylatul Qadr is to touch the night with the very words
+              that were born on it. Every letter carries its ten-fold reward — and on this night,
+              that reward is multiplied by what Allah alone knows.
             </p>
 
             <Hadith
@@ -161,127 +258,31 @@ export function LandingPage() {
           </div>
         </Section>
 
-        {/* The Last Ten Nights */}
-        <Section>
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-foreground">The Last Ten Nights</h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Of all the days and nights in the Islamic calendar, none carry the weight of the last
-              ten nights of Ramadan. Somewhere within them is a single night that the Quran describes
-              as better than a thousand months — eighty-three years of continuous worship, compressed
-              into one evening between Maghrib and Fajr.
-            </p>
-
-            <Hadith
-              arabic="إِنَّا أَنزَلْنَاهُ فِي لَيْلَةِ الْقَدْرِ ۝ وَمَا أَدْرَاكَ مَا لَيْلَةُ الْقَدْرِ ۝ لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ أَلْفِ شَهْرٍ ۝ تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ رَبِّهِم مِّن كُلِّ أَمْرٍ ۝ سَلَامٌ هِيَ حَتَّىٰ مَطْلَعِ الْفَجْرِ"
-              text="Indeed, We sent the Quran down during the Night of Decree. And what can make you know what is the Night of Decree? The Night of Decree is better than a thousand months. The angels and the Spirit descend therein by permission of their Lord for every matter. Peace it is until the emergence of dawn."
-              source="Quran — Surah Al-Qadr, 97:1-5"
-            />
-
-            <Hadith
-              arabic="مَنْ قَامَ لَيْلَةَ الْقَدْرِ إِيمَانًا وَاحْتِسَابًا، غُفِرَ لَهُ مَا تَقَدَّمَ مِنْ ذَنْبِهِ"
-              text="Whoever stands in prayer during Laylatul Qadr with faith and hoping for reward, all his previous sins will be forgiven."
-              source="Sahih al-Bukhari 2014, Sahih Muslim 760"
-            />
-
-            <p className="text-base text-muted-foreground leading-relaxed">
-              The Prophet (ﷺ) was asked by Aisha (may Allah be pleased with her): if she knew which
-              night was Laylatul Qadr, what should she say? He taught her one dua. That dua is still
-              the answer.
-            </p>
-
-            <Hadith
-              arabic="اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي"
-              text="O Allah, You are Pardoning, You love to pardon, so pardon me."
-              source="Jami at-Tirmidhi 3513 — Hasan Sahih, narrated by Aisha (may Allah be pleased with her)"
-            />
-
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Sabeel is built for Ramadan. But it is built especially for these ten nights. The last
-              third of each odd night is the window. The forgiveness is real. The opportunity closes
-              at Fajr.
-            </p>
-          </div>
-        </Section>
-
-        {/* Prayer */}
-        <Section>
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-foreground">The Five Prayers</h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Of all the pillars of Islam, the prayer is the one most frequently
-              mentioned in the Quran and the one the Prophet (ﷺ) spoke about with
-              the greatest urgency. It is the first matter that will be examined on
-              the Day of Judgement. If it is sound, everything else will be sound.
-              If it is corrupted, everything else will be corrupted.
-            </p>
-
-            <Hadith
-              text="The first thing a person will be called to account for on the Day of Judgement is the prayer. If it is found to be sound and complete, the rest of his deeds will be sound and complete. If it is found to be deficient, the rest of his deeds will be deficient."
-              source="Al-Tabarani and Al-Daraqutni, reported by Abu Hurayrah (may Allah be pleased with him)"
-            />
-
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Sabeel does not automate prayer or replace the act of standing before
-              Allah. It simply provides a place to mark each prayer as it is completed,
-              creating a daily record that is honest rather than assumed.
-            </p>
-          </div>
-        </Section>
-
-        {/* Adhkar */}
-        <Section>
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-foreground">Remembrance of Allah</h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              The adhkar prescribed by the Prophet (ﷺ) for morning, evening, after
-              prayer, and before sleep are among the most powerful acts a Muslim can
-              perform outside of formal worship. They are brief. They take minutes.
-              And their rewards, as described in authentic narrations, are immense.
-            </p>
-
-            <Hadith
-              arabic="أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"
-              text="Verily, in the remembrance of Allah do hearts find rest."
-              source="Quran, Surah Ar-Ra'd 13:28"
-            />
-
-            <Hadith
-              text="Shall I not tell you about the best of your deeds, the purest before your Lord, the highest in your ranks, better for you than giving gold and silver, and better for you than meeting your enemy and striking their necks and them striking yours? They said: Yes, O Messenger of Allah. He said: The remembrance of Allah."
-              source="Jami at-Tirmidhi 3377, narrated by Abu al-Darda (may Allah be pleased with him)"
-            />
-
-            <p className="text-base text-muted-foreground leading-relaxed">
-              The anxiety adhkar in Sabeel draw from the supplications the Prophet
-              (ﷺ) taught specifically for moments of distress and hardship — because
-              Ramadan, for many people, is also a month of difficulty, and Islam
-              acknowledges that.
-            </p>
-          </div>
-        </Section>
-
-        {/* Closing */}
+        {/* Sabeel */}
         <Section>
           <div className="space-y-5">
-            <h2 className="text-2xl font-semibold text-foreground">A Path, Not a Product</h2>
+            <h2 className="text-2xl font-semibold text-foreground">Sabeel — A Companion for These Nights</h2>
             <p className="text-base text-muted-foreground leading-relaxed">
-              The name Sabeel means path or way. It is used in the Quran to describe
-              the way of Allah, the way of righteousness, the way that leads somewhere.
-              This app is a small, imperfect tool in the hand of someone trying to walk
-              that path with more intention.
-            </p>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              It will not make you more righteous. It will not replace knowledge, sincerity,
-              or consistent effort. But it may help you see more clearly where you are,
-              and what remains to be done before the month ends.
+              Sabeel (سبيل — meaning path or way) is a minimal, offline-first app built to help
+              a Muslim get the most from Ramadan — and especially from the last ten nights.
+              No accounts. No advertisements. No social feeds. Everything runs on your device
+              and stores nothing outside your browser.
             </p>
 
-            <div className="pt-2">
-              <Hadith
-                arabic="إِنَّ مَعَ الْعُسْرِ يُسْرًا"
-                text="Verily, with every hardship comes ease."
-                source="Quran, Surah Ash-Sharh 94:6"
-              />
+            <div className="pt-1 space-y-2">
+              {[
+                'Laylatul Qadr guide — duas, hadiths, recommended surahs, and a night checklist',
+                'Laylatul Qadr adhkar — dhikr counter for the specific remembrances of these nights',
+                'Quran reader with Uthmani script and juz-by-juz progress tracking',
+                'Daily prayer log for all five salah',
+                'Morning, evening, after-prayer, pre-sleep, and anxiety adhkar',
+                'Works offline — no internet required after first load',
+              ].map((item) => (
+                <div key={item} className="flex gap-3 items-start">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
+                  <p className="text-base text-muted-foreground">{item}</p>
+                </div>
+              ))}
             </div>
 
             <div className="pt-4 flex justify-center">

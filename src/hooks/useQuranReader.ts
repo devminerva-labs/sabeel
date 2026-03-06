@@ -48,6 +48,7 @@ export function useQuranReaderJuz(options: UseQuranReaderJuzOptions) {
   const { data, isLoading, isPlaceholderData, error } = useQuery<QuranCacheRecord['ayahs']>({
     queryKey: ['quran-juz', juzNumber],
     queryFn: () => getJuzCached(juzNumber),
+    enabled: juzNumber >= 1 && juzNumber <= 30,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
     placeholderData: () => makeJuzSkeleton(juzNumber),
@@ -58,8 +59,9 @@ export function useQuranReaderJuz(options: UseQuranReaderJuzOptions) {
     },
   })
 
-  // Silently prefetch adjacent Juz
+  // Silently prefetch adjacent Juz (skip when this branch is inactive, i.e. juzNumber=0)
   useEffect(() => {
+    if (juzNumber < 1 || juzNumber > 30) return
     const neighbors = [juzNumber - 1, juzNumber + 1].filter((n) => n >= 1 && n <= 30)
     for (const n of neighbors) {
       queryClient.prefetchQuery({
@@ -93,6 +95,7 @@ export function useQuranReaderSurah(options: UseQuranReaderSurahOptions) {
   const { data, isLoading, isPlaceholderData, error } = useQuery<SurahCacheRecord['ayahs']>({
     queryKey: ['quran-surah', surahNumber],
     queryFn: () => getSurahCached(surahNumber),
+    enabled: surahNumber >= 1 && surahNumber <= 114,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
     placeholderData: () => makeSurahSkeleton(surahNumber),
@@ -103,8 +106,9 @@ export function useQuranReaderSurah(options: UseQuranReaderSurahOptions) {
     },
   })
 
-  // Silently prefetch adjacent Surahs
+  // Silently prefetch adjacent Surahs (skip when this branch is inactive, i.e. surahNumber=0)
   useEffect(() => {
+    if (surahNumber < 1 || surahNumber > 114) return
     const neighbors = [surahNumber - 1, surahNumber + 1].filter((n) => n >= 1 && n <= 114)
     for (const n of neighbors) {
       queryClient.prefetchQuery({
@@ -131,9 +135,13 @@ export type UseQuranReaderOptions =
   | { mode: 'surah'; surahNumber: number }
 
 export function useQuranReader(options: UseQuranReaderOptions) {
-  if (options.mode === 'juz') {
-    return useQuranReaderJuz(options)
-  } else {
-    return useQuranReaderSurah(options)
-  }
+  // Both hooks must always be called (Rules of Hooks — no conditional calls).
+  // We pass dummy values to the inactive branch so it still executes.
+  const juzResult = useQuranReaderJuz(
+    options.mode === 'juz' ? options : { mode: 'juz', juzNumber: 0 },
+  )
+  const surahResult = useQuranReaderSurah(
+    options.mode === 'surah' ? options : { mode: 'surah', surahNumber: 0 },
+  )
+  return options.mode === 'juz' ? juzResult : surahResult
 }

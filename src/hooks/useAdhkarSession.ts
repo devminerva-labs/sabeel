@@ -75,9 +75,21 @@ export function useAdhkarSession(category: AdhkarCategory, userId?: string | nul
         completedAt: new Date().toISOString(),
         syncedAt: undefined,
       })
-
       if (userId) {
         upsertAdhkarSession(userId, now, category, existing.counts, true).catch(console.error)
+      }
+    } else {
+      // No record yet (category has 0-repetition dhikr or was opened without incrementing).
+      // Create a completed record so dashboards and counters reflect completion.
+      await db.adhkarSessions.add({
+        sessionDate: now,
+        category,
+        completed: true,
+        completedAt: new Date().toISOString(),
+        counts: {},
+      })
+      if (userId) {
+        upsertAdhkarSession(userId, now, category, {}, true).catch(console.error)
       }
     }
   }, [category, userId])

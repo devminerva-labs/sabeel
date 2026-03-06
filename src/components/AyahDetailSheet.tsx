@@ -23,16 +23,19 @@ function audioUrl(surah: number, ayah: number) {
 
 function useAyahAudio(surah: number | null, ayah: number | null) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const listenerAcRef = useRef<AbortController | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Stop and reset audio whenever the ayah changes
+  // Stop and reset audio whenever the ayah changes; abort listeners so they don't accumulate
   useEffect(() => {
     const audio = audioRef.current
     if (audio) {
       audio.pause()
       audio.src = ''
     }
+    listenerAcRef.current?.abort()
+    listenerAcRef.current = null
     audioRef.current = null
     setIsPlaying(false)
     setIsLoading(false)
@@ -45,14 +48,14 @@ function useAyahAudio(surah: number | null, ayah: number | null) {
       const audio = new Audio(audioUrl(surah, ayah))
       audioRef.current = audio
 
-      audio.addEventListener('canplay', () => setIsLoading(false))
-      audio.addEventListener('ended', () => setIsPlaying(false))
-      audio.addEventListener('pause', () => setIsPlaying(false))
-      audio.addEventListener('play', () => setIsPlaying(true))
-      audio.addEventListener('error', () => {
-        setIsLoading(false)
-        setIsPlaying(false)
-      })
+      const ac = new AbortController()
+      listenerAcRef.current = ac
+      const opts = { signal: ac.signal }
+      audio.addEventListener('canplay', () => setIsLoading(false), opts)
+      audio.addEventListener('ended', () => setIsPlaying(false), opts)
+      audio.addEventListener('pause', () => setIsPlaying(false), opts)
+      audio.addEventListener('play', () => setIsPlaying(true), opts)
+      audio.addEventListener('error', () => { setIsLoading(false); setIsPlaying(false) }, opts)
     }
 
     const audio = audioRef.current
@@ -71,6 +74,7 @@ function useAyahAudio(surah: number | null, ayah: number | null) {
   useEffect(() => {
     return () => {
       audioRef.current?.pause()
+      listenerAcRef.current?.abort()
     }
   }, [])
 

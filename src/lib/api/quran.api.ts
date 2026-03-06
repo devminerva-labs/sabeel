@@ -106,10 +106,13 @@ export async function precacheAllJuz(progressCallback?: (current: number, total:
   }
 }
 
-// Check if all Juz are cached
+// Check if all Juz are cached at the current schema version
 export async function areAllJuzCached(): Promise<boolean> {
   const cached = await db.quranCache.toArray()
-  return cached.length === 30 && cached.every(c => c.ayahs.length > 0)
+  return (
+    cached.length === 30 &&
+    cached.every((c) => c.schemaVersion === CACHE_SCHEMA_VERSION && c.ayahs.length > 0)
+  )
 }
 
 // ==================== SURAH MODE ====================

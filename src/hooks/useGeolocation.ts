@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { saveCoordinates, getSavedCoordinates } from '@/lib/prayer-times'
+import { saveCoordinates, getSavedCoordinates, clearSavedCoordinates } from '@/lib/prayer-times'
 
 type GeoStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable'
 
@@ -8,8 +8,7 @@ export function useGeolocation() {
     getSavedCoordinates() ? 'granted' : 'idle'
   )
   const [error, setError] = useState<string | null>(null)
-
-  const hasCoords = getSavedCoordinates() !== null
+  const [hasCoords, setHasCoords] = useState(() => getSavedCoordinates() !== null)
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -25,6 +24,7 @@ export function useGeolocation() {
       (position) => {
         saveCoordinates(position.coords.latitude, position.coords.longitude)
         setStatus('granted')
+        setHasCoords(true)
         setError(null)
       },
       (err) => {
@@ -39,5 +39,12 @@ export function useGeolocation() {
     )
   }, [])
 
-  return { status, error, requestLocation, hasCoords } as const
+  const clearLocation = useCallback(() => {
+    clearSavedCoordinates()
+    setHasCoords(false)
+    setStatus('idle')
+    setError(null)
+  }, [])
+
+  return { status, error, requestLocation, clearLocation, hasCoords } as const
 }

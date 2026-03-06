@@ -90,20 +90,30 @@ export async function pullServerProgress(userId: string, ramadanYear: RamadanYea
     syncedAt: now,
   }))
 
-  // Upsert each record (use bulkPut for efficiency)
-  for (const record of localRecords) {
-    const existing = await db.quranProgress
-      .where('[juzId+ramadanYear]')
-      .equals([record.juzId, record.ramadanYear])
-      .first()
-    
-    if (existing) {
-      // Only update if server record is newer
-      if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
-        await db.quranProgress.update(existing.id!, record)
-      }
-    } else {
-      await db.quranProgress.add(record)
-    }
+  if (localRecords.length === 0) return
+
+  // Fetch all existing local records for this year in one query (ramadanYear is indexed).
+  // The server query already filters by ramadanYear so all localRecords share the same year.
+  const existingRecords = await db.quranProgress
+    .where('ramadanYear')
+    .equals(ramadanYear)
+    .toArray()
+  const existingMap = new Map(existingRecords.map((r) => [r.juzId, r]))
+
+  // Only upsert records where the server version is newer than local.
+  // Merge the existing local `id` so bulkPut updates in-place rather than inserting duplicates
+  // (Dexie bulkPut uses the primary key; without id it would auto-generate a new row).
+  const toUpsert = localRecords
+    .filter((record) => {
+      const existing = existingMap.get(record.juzId)
+      return !existing || new Date(record.updatedAt) > new Date(existing.updatedAt)
+    })
+    .map((record) => {
+      const existing = existingMap.get(record.juzId)
+      return existing ? { ...record, id: existing.id } : record
+    })
+
+  if (toUpsert.length > 0) {
+    await db.quranProgress.bulkPut(toUpsert)
   }
 }

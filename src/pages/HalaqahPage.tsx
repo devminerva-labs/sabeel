@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ArabicText } from '@/components/ArabicText'
 import { useAuth } from '@/hooks/useAuth'
@@ -226,6 +226,8 @@ function CreateOrJoin({ userId, onBack }: { userId: string; onBack: () => void }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const isMountedRef = useRef(true)
+  useEffect(() => () => { isMountedRef.current = false }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -239,12 +241,15 @@ function CreateOrJoin({ userId, onBack }: { userId: string; onBack: () => void }
         const { error: err } = await joinHalaqah({ inviteCode, nickname })
         if (err) { setError(err); return }
       }
+      if (!isMountedRef.current) return
       setSuccess(true)
-      setTimeout(() => onBack(), 800)
+      setTimeout(() => { if (isMountedRef.current) onBack() }, 800)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
+      if (isMountedRef.current) {
+        setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
+      }
     } finally {
-      setIsSubmitting(false)
+      if (isMountedRef.current) setIsSubmitting(false)
     }
   }
 
@@ -287,10 +292,11 @@ function CreateOrJoin({ userId, onBack }: { userId: string; onBack: () => void }
               required
               minLength={2}
               maxLength={60}
+              disabled={isSubmitting || success}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Brothers of Masjid Al-Noor"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
             />
           </div>
         )}
@@ -301,10 +307,13 @@ function CreateOrJoin({ userId, onBack }: { userId: string; onBack: () => void }
             <input
               type="text"
               required
+              minLength={8}
+              maxLength={8}
+              disabled={isSubmitting || success}
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               placeholder="8-character code"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
             />
           </div>
         )}
@@ -316,10 +325,11 @@ function CreateOrJoin({ userId, onBack }: { userId: string; onBack: () => void }
             required
             minLength={1}
             maxLength={30}
+            disabled={isSubmitting || success}
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="How others will see you"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           />
           <p className="text-xs text-muted-foreground">Your real name is never shown to other members.</p>
         </div>

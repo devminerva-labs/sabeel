@@ -46,7 +46,11 @@ export function useTheme() {
   const theme = useSyncExternalStore(subscribe, getTheme, () => 'system' as Theme)
 
   const setTheme = useCallback((newTheme: Theme) => {
-    localStorage.setItem(STORAGE_KEY, newTheme)
+    try {
+      localStorage.setItem(STORAGE_KEY, newTheme)
+    } catch {
+      // storage full or restricted — apply in-memory only
+    }
     applyTheme(newTheme)
     listeners.forEach((l) => l())
   }, [])

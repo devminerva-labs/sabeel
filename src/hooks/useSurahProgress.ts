@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { db } from '@/lib/db'
 import { supabase } from '@/lib/supabase/client'
 import type { SurahId, RamadanYear, ProgressStatus } from '@/types'
@@ -32,38 +32,50 @@ export function useSurahProgress(ramadanYear: RamadanYear, userId?: string | nul
       if (error || !data) return
 
       const now = new Date().toISOString()
-      for (const row of data) {
-        const existing = await db.surahProgress
-          .where('[surahId+ramadanYear]')
-          .equals([row.surah_id, row.ramadan_year])
-          .first()
-        
-        const record = {
-          surahId: row.surah_id as SurahId,
-          ramadanYear: row.ramadan_year as RamadanYear,
-          status: row.status as ProgressStatus,
-          completedAt: row.completed_at,
-          updatedAt: row.updated_at,
-          syncedAt: now,
-        }
-        
-        if (existing) {
-          if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
-            await db.surahProgress.update(existing.id!, record)
-          }
-        } else {
-          await db.surahProgress.add(record)
-        }
+      const serverRecords = data.map((row) => ({
+        surahId: row.surah_id as SurahId,
+        ramadanYear: row.ramadan_year as RamadanYear,
+        status: row.status as ProgressStatus,
+        completedAt: row.completed_at,
+        updatedAt: row.updated_at,
+        syncedAt: now,
+      }))
+
+      if (serverRecords.length === 0) return
+
+      // Batch read: one query instead of N sequential reads
+      const existingRecords = await db.surahProgress
+        .where('ramadanYear')
+        .equals(ramadanYear)
+        .toArray()
+      const existingMap = new Map(existingRecords.map((r) => [r.surahId, r]))
+
+      // Only upsert records where server version is newer; merge local id to avoid duplicates
+      const toUpsert = serverRecords
+        .filter((record) => {
+          const existing = existingMap.get(record.surahId)
+          return !existing || new Date(record.updatedAt) > new Date(existing.updatedAt)
+        })
+        .map((record) => {
+          const existing = existingMap.get(record.surahId)
+          return existing ? { ...record, id: existing.id } : record
+        })
+
+      if (toUpsert.length > 0) {
+        await db.surahProgress.bulkPut(toUpsert)
       }
     }
     
     pullSurahProgress().catch(console.error)
   }, [userId, ramadanYear])
 
-  const statusMap = new Map<number, ProgressStatus>()
-  for (const r of records) {
-    statusMap.set(r.surahId, r.status)
-  }
+  const statusMap = useMemo(() => {
+    const map = new Map<number, ProgressStatus>()
+    for (const r of records) {
+      map.set(r.surahId, r.status)
+    }
+    return map
+  }, [records])
 
   const getStatus = useCallback(
     (id: SurahId): ProgressStatus => statusMap.get(id) ?? 'not_started',

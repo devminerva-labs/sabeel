@@ -27,6 +27,11 @@ export function NightChecklist() {
   const date = todayISO()
   const [state, setState] = useState<NightChecklistState>(() => loadChecklist(date))
 
+  // If the component stays mounted past midnight, reload the checklist for the new day.
+  useEffect(() => {
+    setState(loadChecklist(date))
+  }, [date])
+
   useEffect(() => {
     saveChecklist(date, state)
   }, [date, state])

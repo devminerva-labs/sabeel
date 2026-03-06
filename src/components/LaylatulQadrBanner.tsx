@@ -62,14 +62,11 @@ export function LaylatulQadrBanner({ dayNumber }: Props) {
             <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
-        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Last 10 Nights</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">The Last 10 Nights</p>
         <p className="text-base font-semibold text-foreground">
           {nights === 1
             ? 'Tomorrow night the last 10 nights begin'
-            : `${nights} nights until the Last 10 Nights begin`}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Prepare your heart. Laylatul Qadr — better than a thousand months.
+            : `${nights} nights away`}
         </p>
       </div>
     )

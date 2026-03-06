@@ -15,7 +15,7 @@ import { calculateCatchUp } from '@/lib/catch-up'
 import { juzId, surahId, type JuzId } from '@/types'
 import { JUZ_DATA } from '@/content/juz-data'
 import { SURAH_DATA } from '@/content/surah-data'
-import { getJuzCached, precacheAllJuz } from '@/lib/api/quran.api'
+import { getJuzCached, precacheAllJuz, areAllJuzCached } from '@/lib/api/quran.api'
 
 type QuranView = 'juz' | 'surah'
 
@@ -53,14 +53,19 @@ export function QuranPage() {
   const [autoTrackMsg, setAutoTrackMsg] = useState<string | null>(null)
   const [downloadingJuz, setDownloadingJuz] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
+  const [allCached, setAllCached] = useState(false)
+
+  useEffect(() => {
+    areAllJuzCached().then(setAllCached).catch(() => setAllCached(false))
+  }, [])
 
   const lastBookmark = useLastReadingBookmark()
   const location = useLocation()
 
   const { user } = useAuth()
-  // We need a stable RamadanYear for the hook — use 0 as placeholder when outside Ramadan
-  // The hook will just return empty data for a non-existent year
-  const safeYear = (ramadanYear ?? 0) as import('@/types').RamadanYear
+  // Use the current Ramadan year, or the nearest future year as a harmless placeholder
+  // when outside Ramadan. The hook returns empty data for years with no records.
+  const safeYear = (ramadanYear ?? 2026) as import('@/types').RamadanYear
   const progress = useQuranProgress(safeYear, user?.id)
   const surahProg = useSurahProgress(safeYear, user?.id)
 
@@ -133,6 +138,7 @@ export function QuranPage() {
       await precacheAllJuz((current, total) => {
         setDownloadProgress(Math.round((current / total) * 100))
       })
+      setAllCached(true)
     } catch (err) {
       console.error('Failed to download:', err)
     } finally {
@@ -177,8 +183,8 @@ export function QuranPage() {
         {/* Offline indicator */}
         <OfflineIndicator />
 
-        {/* Download for offline (only for Juz mode) */}
-        {isJuzMode && (
+        {/* Download for offline (only for Juz mode, hidden when already cached) */}
+        {isJuzMode && !allCached && (
           !downloadingJuz ? (
             <button
               onClick={handleDownloadForOffline}
@@ -347,6 +353,14 @@ function QuranGridWithReader({
   const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
+  // Clear any pending timeouts on unmount to prevent post-unmount side effects.
+  useEffect(() => {
+    return () => {
+      if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current)
+      if (longPressTimeout.current) clearTimeout(longPressTimeout.current)
+    }
+  }, [])
+
   const handleTap = useCallback(
     (id: JuzId) => {
       cycleStatus(id)
@@ -373,11 +387,11 @@ function QuranGridWithReader({
   }, [])
 
   const startLongPress = useCallback(
-    (juzId: number) => {
+    (juzNum: number) => {
       didLongPress.current = false
       longPressTimeout.current = setTimeout(() => {
         didLongPress.current = true
-        onSelectJuz(juzId)
+        onSelectJuz(juzNum)
       }, 500)
     },
     [onSelectJuz],

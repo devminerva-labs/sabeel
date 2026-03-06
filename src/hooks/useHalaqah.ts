@@ -33,7 +33,7 @@ export function useHalaqah(userId: string | null, selectedHalaqahId?: string | n
     queryKey: ['halaqah-leaderboard', selectedHalaqahId, year],
     queryFn: () => getLeaderboard(selectedHalaqahId!, year, userId!),
     enabled: !!selectedHalaqahId && !!userId,
-    staleTime: 0,
+    staleTime: 1000 * 15,
     refetchInterval: 1000 * 30,
     refetchIntervalInBackground: false,
   })

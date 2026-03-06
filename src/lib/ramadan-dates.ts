@@ -14,7 +14,8 @@ export const RAMADAN_SEASONS: Record<number, RamadanSeason> = {
 }
 
 export function getCurrentRamadanYear(): RamadanYear | null {
-  const today = new Date().toISOString().slice(0, 10)
+  // Use sv-SE locale for local-time YYYY-MM-DD to match getRamadanDayNumber's local-time logic.
+  const today = new Date().toLocaleDateString('sv-SE')
   for (const [year, season] of Object.entries(RAMADAN_SEASONS)) {
     if (today >= season.start && today <= season.end) {
       return Number(year) as RamadanYear
@@ -31,7 +32,9 @@ export function getRamadanDayNumber(year: RamadanYear): number | null {
   const season = RAMADAN_SEASONS[year]
   if (!season) return null
   const today = new Date()
-  const start = new Date(season.start)
+  // Append T00:00:00 to force local-time parsing (bare date strings parse as UTC midnight,
+  // which causes off-by-one errors for users in UTC+ timezones near midnight).
+  const start = new Date(season.start + 'T00:00:00')
   const diff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
   if (diff < 0 || diff >= season.days) return null
   return diff + 1

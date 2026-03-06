@@ -11,7 +11,6 @@ import {
   getSavedCalculationMethod,
   saveCalculationMethod,
   saveCoordinates,
-  clearSavedCoordinates,
   type CalculationMethodKey,
 } from '@/lib/prayer-times'
 import { FARD_PRAYERS, RAWATIB_PRAYERS, STANDALONE_PRAYERS, ALL_VOLUNTARY_PRAYERS } from '@/content/prayer-data'
@@ -34,11 +33,20 @@ export function PrayerPage() {
   const { user } = useAuth()
   const { getStatus, togglePrayer, prayedCount, date } = usePrayerLog(user?.id)
   const { isCompleted, toggle, completedCount } = useVoluntaryPrayers()
-  const { status: geoStatus, error: geoError, requestLocation, hasCoords } = useGeolocation()
+  const { status: geoStatus, error: geoError, requestLocation, clearLocation, hasCoords } = useGeolocation()
 
   const [method, setMethod] = useState<CalculationMethodKey>(getSavedCalculationMethod)
   // Bump to force recompute after geolocation changes
   const [coordsVersion, setCoordsVersion] = useState(0)
+  // Bump at midnight so prayer times recompute for the new day
+  const [dateVersion, setDateVersion] = useState(0)
+  useEffect(() => {
+    const now = new Date()
+    const msUntilMidnight =
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+    const timer = setTimeout(() => setDateVersion((v) => v + 1), msUntilMidnight + 500)
+    return () => clearTimeout(timer)
+  }, [dateVersion])
   // Manual location input state
   const [showManualInput, setShowManualInput] = useState(false)
   const [manualLat, setManualLat] = useState('')
@@ -82,7 +90,7 @@ export function PrayerPage() {
   }, [])
 
   const handleClearLocation = useCallback(() => {
-    clearSavedCoordinates()
+    clearLocation()
     setCoordsVersion((v) => v + 1)
     setManualLat('')
     setManualLng('')
@@ -96,7 +104,7 @@ export function PrayerPage() {
 
   const times = useMemo(
     () => getPrayerTimes(new Date()),
-    [method, coordsVersion] // eslint-disable-line react-hooks/exhaustive-deps
+    [method, coordsVersion, dateVersion] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
