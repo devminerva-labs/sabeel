@@ -197,6 +197,13 @@ export function DashboardPage() {
           <p className="text-base font-semibold text-foreground">Halaqah</p>
           <p className="text-sm text-muted-foreground">Your study circle</p>
         </Link>
+        <Link
+          to="/app/musabaqah"
+          className="rounded-xl border border-border p-4 space-y-1 hover:bg-muted/30 transition-colors col-span-2"
+        >
+          <p className="text-base font-semibold text-foreground">Musabaqah</p>
+          <p className="text-sm text-muted-foreground">Challenge a friend to an Islamic quiz</p>
+        </Link>
       </div>
     </div>
   )

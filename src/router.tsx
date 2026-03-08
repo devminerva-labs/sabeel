@@ -58,6 +58,9 @@ const AdminPage = lazyWithReload(() =>
 const LaylatulQadrPage = lazyWithReload(() =>
   import('@/pages/LaylatulQadrPage').then((m) => ({ default: m.LaylatulQadrPage })),
 )
+const MusabaqahPage = lazyWithReload(() =>
+  import('@/pages/MusabaqahPage').then((m) => ({ default: m.MusabaqahPage })),
+)
 
 function RouteErrorFallback() {
   return (
@@ -163,6 +166,16 @@ export const router = createBrowserRouter([
           <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
             <ErrorBoundary level="feature">
               <LaylatulQadrPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
+      },
+      {
+        path: 'musabaqah',
+        element: (
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+            <ErrorBoundary level="feature">
+              <MusabaqahPage />
             </ErrorBoundary>
           </Suspense>
         ),
