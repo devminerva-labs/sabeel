@@ -39,9 +39,9 @@ function NotLoggedIn() {
 const CATEGORIES: { id: QuizCategory; label: string; description: string; available: boolean }[] = [
   { id: 'general', label: 'General Knowledge', description: 'Pillars, faith, worship & more', available: true },
   { id: 'prophets', label: 'Prophet Stories', description: 'Stories of the 25 Quranic prophets', available: true },
-  { id: 'quran', label: 'Quran', description: 'Coming soon', available: false },
-  { id: 'history', label: 'Islamic History', description: 'Coming soon', available: false },
-  { id: 'sunnah', label: 'Sunnah', description: 'Coming soon', available: false },
+  { id: 'quran', label: 'Qur\'an', description: 'Themes, surahs & Qur\'anic concepts', available: true },
+  { id: 'sunnah', label: 'Sunnah & Hadith', description: 'Prophetic teachings & character', available: true },
+  { id: 'history', label: 'Aqeedah & Fiqh', description: 'Belief, law & Islamic history', available: true },
   { id: 'names', label: 'Names of Allah', description: 'Coming soon', available: false },
 ]
 
