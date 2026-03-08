@@ -26,34 +26,26 @@ export async function createSession(category: QuizCategory, questionIds: string[
   return { data: { ...session, id: SessionId(session.id) }, error: null }
 }
 
-// Join by invite code (guest calls this)
+// Join by invite code — single atomic RPC: lookup + capacity check + insert in one transaction.
+// The DB uses FOR UPDATE on the session row to prevent concurrent over-joining (TOCTOU fix).
 export async function joinByCode(code: string, nickname: string) {
   if (!supabase) return { data: null, error: new Error('No connection') }
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { data: null, error: new Error('Not authenticated') }
 
-  // Look up session
-  const { data: session, error: lookupError } = await supabase
-    .from('quiz_sessions')
-    .select('*')
-    .eq('invite_code', code.trim().toUpperCase())
-    .eq('status', 'lobby')
-    .single()
-  if (lookupError || !session) return { data: null, error: new Error('Code not found or game already started') }
+  const { data, error } = await supabase.rpc('join_quiz_session', {
+    p_invite_code: code.trim().toUpperCase(),
+    p_nickname:    nickname,
+  })
 
-  // Check member count against session's max_players
-  const { count } = await supabase
-    .from('quiz_session_members')
-    .select('*', { count: 'exact', head: true })
-    .eq('session_id', session.id)
-  const cap = (session.max_players ?? 2) as number
-  if ((count ?? 0) >= cap) return { data: null, error: new Error(`This game is full (${cap} players max)`) }
+  if (error) {
+    // Map DB error messages to user-friendly strings
+    const msg = error.message ?? ''
+    if (msg.includes('session_full'))                      return { data: null, error: new Error(error.hint ?? 'This game is full') }
+    if (msg.includes('Code not found') || msg.includes('P0002')) return { data: null, error: new Error('Code not found or game already started') }
+    return { data: null, error }
+  }
 
-  // Join
-  const { error: joinError } = await supabase
-    .from('quiz_session_members')
-    .insert({ session_id: session.id, user_id: user.id, nickname })
-  if (joinError) return { data: null, error: joinError }
+  const session = Array.isArray(data) ? data[0] : data
+  if (!session) return { data: null, error: new Error('Code not found or game already started') }
 
   return { data: { ...session, id: SessionId(session.id) }, error: null }
 }
