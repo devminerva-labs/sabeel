@@ -14,12 +14,17 @@ export function useMusabaqah() {
   const qc = useQueryClient()
   const channelRef = useRef<RealtimeChannel | null>(null)
   const hasEndedRef = useRef(false)
+  // Ref guard prevents double-start if host taps "Start Quiz" twice (bug 015)
+  const startingRef = useRef(false)
+  // Store the player's chosen nickname so presence shows it (not email) (bug 009)
+  const nicknameRef = useRef<string>('Player')
 
   const [view, setView] = useState<QuizView>('landing')
   const [sessionId, setSessionId] = useState<SessionId | null>(null)
   const [members, setMembers] = useState<QuizMember[]>([])
   const [endsAt, setEndsAt] = useState<number | null>(null)
   const [scores, setScores] = useState<PlayerScore[] | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
 
   // Fetch session details (for question_ids, invite_code, max_players, etc.)
   const { data: session } = useQuery({
@@ -31,7 +36,7 @@ export function useMusabaqah() {
         .select('*')
         .eq('id', sessionId)
         .single()
-      return data as QuizSession | null   // cast so max_players is typed correctly
+      return data as QuizSession | null
     },
     enabled: !!sessionId,
     staleTime: 30_000,
@@ -68,7 +73,8 @@ export function useMusabaqah() {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await ch.track({ user_id: user.id, nickname: user.email ?? 'Player' })
+          // Track with the player's chosen nickname — not their email (bug 009)
+          await ch.track({ user_id: user.id, nickname: nicknameRef.current })
         }
       })
 
@@ -109,30 +115,40 @@ export function useMusabaqah() {
 
   // Host broadcasts quiz_start and updates DB (multiplayer only)
   const handleStartQuiz = useCallback(async () => {
-    if (!sessionId || !channelRef.current) return
-    const now = Date.now()
-    const endsAtTs = now + 180_000 // 3 minutes
-    await startSession(sessionId)
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'quiz_start',
-      payload: { startedAt: now, endsAt: endsAtTs },
-    })
-    setEndsAt(endsAtTs)
-    setView('quiz')
+    if (!sessionId || !channelRef.current || startingRef.current) return
+    startingRef.current = true
+    setIsStarting(true)
+    try {
+      const now = Date.now()
+      const endsAtTs = now + 180_000 // 3 minutes
+      await startSession(sessionId)
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'quiz_start',
+        payload: { startedAt: now, endsAt: endsAtTs },
+      })
+      setEndsAt(endsAtTs)
+      setView('quiz')
+    } finally {
+      startingRef.current = false
+      setIsStarting(false)
+    }
   }, [sessionId])
 
-  // Called when timer runs out — broadcast for other players, then fetch locally
+  // Called when timer runs out — wait briefly for any in-flight answer writes, then fetch (bug 011)
   const handleTimerEnd = useCallback(async () => {
     if (channelRef.current) {
       channelRef.current.send({ type: 'broadcast', event: 'quiz_end', payload: { endedAt: Date.now() } })
     }
+    // Small delay to let any fire-and-forget submitAnswer calls finish persisting (bug 011)
+    await new Promise(r => setTimeout(r, 1500))
     await fetchResults()
   }, [fetchResults])
 
-  // Session created — for solo (max_players=1): skip lobby, start immediately.
-  // Uses `id` directly to avoid depending on sessionId state being set first.
-  const handleSessionCreated = useCallback(async (id: SessionId, maxPlayers: 1 | 2 | 3 | 4) => {
+  // Session created — accept nickname to store for lobby presence (bug 009)
+  // For solo (max_players=1): skip lobby, start immediately.
+  const handleSessionCreated = useCallback(async (id: SessionId, maxPlayers: 1 | 2 | 3 | 4, nickname: string) => {
+    nicknameRef.current = nickname
     setSessionId(id)
     if (maxPlayers === 1) {
       const endsAtTs = Date.now() + 180_000
@@ -144,7 +160,9 @@ export function useMusabaqah() {
     setView('lobby')
   }, [])
 
-  const handleSessionJoined = useCallback((id: SessionId) => {
+  // Session joined — store nickname for presence (bug 009)
+  const handleSessionJoined = useCallback((id: SessionId, nickname: string) => {
+    nicknameRef.current = nickname
     setSessionId(id)
     setView('lobby')
   }, [])
@@ -159,10 +177,12 @@ export function useMusabaqah() {
       qc.removeQueries({ queryKey: ['musabaqah-session', sessionId] })
     }
     hasEndedRef.current = false   // reset so the next game's timer fires correctly
+    startingRef.current = false
     setSessionId(null)
     setScores(null)
     setMembers([])
     setEndsAt(null)
+    setIsStarting(false)
     setView('landing')
   }, [sessionId, isHost, qc])
 
@@ -174,6 +194,7 @@ export function useMusabaqah() {
     endsAt,
     scores,
     isHost,
+    isStarting,
     handleSessionCreated,
     handleSessionJoined,
     handleStartQuiz,

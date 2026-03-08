@@ -68,20 +68,19 @@ export async function startSession(sessionId: SessionId) {
   return { error }
 }
 
-// Submit one answer
+// Submit one answer — userId is passed in to avoid a getUser() network call per question
 export async function submitAnswer(
   sessionId: SessionId,
+  userId: string,
   questionIdx: number,
   answer: 'A' | 'B' | 'C' | 'D',
   isCorrect: boolean,
 ) {
   if (!supabase) return { error: new Error('No connection') }
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: new Error('Not authenticated') }
   const { error } = await supabase
     .from('quiz_answers')
     .upsert(
-      { session_id: sessionId, user_id: user.id, question_idx: questionIdx, answer, is_correct: isCorrect },
+      { session_id: sessionId, user_id: userId, question_idx: questionIdx, answer, is_correct: isCorrect },
       { onConflict: 'session_id,user_id,question_idx' },
     )
   return { error }

@@ -1,7 +1,8 @@
 // src/components/musabaqah/MusabaqahQuiz.tsx
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { QUESTIONS_BY_CATEGORY } from '@/content/quiz'
 import { submitAnswer } from '@/lib/api/musabaqah.api'
+import { useAuth } from '@/hooks/useAuth'
 import type { QuizSession } from '@/types/musabaqah'
 
 interface Props {
@@ -17,6 +18,7 @@ function formatTime(seconds: number): string {
 }
 
 export function MusabaqahQuiz({ session, endsAt, onTimerEnd }: Props) {
+  const { user } = useAuth()
   const [currentIdx, setCurrentIdx] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<'A' | 'B' | 'C' | 'D' | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
@@ -24,17 +26,25 @@ export function MusabaqahQuiz({ session, endsAt, onTimerEnd }: Props) {
   const [timeLeft, setTimeLeft] = useState(() => Math.max(0, Math.round((endsAt - Date.now()) / 1000)))
   const [playerDone, setPlayerDone] = useState(false)
   const timerEndedRef = useRef(false)
+  // Synchronous guard — prevents double-submission when state hasn't updated yet (bug 014)
+  const answerLockedRef = useRef(false)
+  // Stable ref for onTimerEnd — prevents timer effect from resetting on prop reference change (bug 008)
+  const onTimerEndRef = useRef(onTimerEnd)
+  useEffect(() => { onTimerEndRef.current = onTimerEnd }, [onTimerEnd])
 
-  // Build question list from session.question_ids (same order for both clients)
-  const allQuestions = QUESTIONS_BY_CATEGORY[session.category]
-  const questions = session.question_ids
-    .map(id => allQuestions.find(q => q.id === id))
-    .filter(Boolean) as typeof allQuestions
+  // Build question list once from session.question_ids — memoized so 1s timer ticks don't rebuild it (bug 006)
+  const questions = useMemo(() => {
+    const allQuestions = QUESTIONS_BY_CATEGORY[session.category]
+    return session.question_ids
+      .map(id => allQuestions.find(q => q.id === id))
+      .filter(Boolean) as typeof allQuestions
+  }, [session.question_ids, session.category])
 
   const currentQuestion = questions[currentIdx]
   const totalQuestions = questions.length
 
-  // Countdown timer
+  // Countdown timer — fires every 1s (was 500ms, doubled renders unnecessarily) (bug 007)
+  // Only `endsAt` in deps — stable because onTimerEnd is accessed via ref (bug 008)
   useEffect(() => {
     const interval = setInterval(() => {
       const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000))
@@ -42,27 +52,30 @@ export function MusabaqahQuiz({ session, endsAt, onTimerEnd }: Props) {
       if (remaining <= 0 && !timerEndedRef.current) {
         timerEndedRef.current = true
         clearInterval(interval)
-        onTimerEnd()
+        onTimerEndRef.current()
       }
-    }, 500)
+    }, 1000)
     return () => clearInterval(interval)
-  }, [endsAt, onTimerEnd])
+  }, [endsAt])
 
   async function handleAnswer(answer: 'A' | 'B' | 'C' | 'D') {
-    if (selectedAnswer || !currentQuestion) return
+    // Synchronous ref guard prevents double-submission from rapid taps (bug 014)
+    if (answerLockedRef.current || !currentQuestion || !user) return
+    answerLockedRef.current = true
 
     const isCorrect = answer === currentQuestion.correct
     setSelectedAnswer(answer)
     setShowFeedback(true)
     if (isCorrect) setScore(s => s + 1)
 
-    // Persist to DB (fire-and-forget, no await to keep UI snappy)
-    submitAnswer(session.id, currentIdx, answer, isCorrect)
+    // Pass userId directly — no per-answer getUser() network call (bug 010)
+    submitAnswer(session.id, user.id, currentIdx, answer, isCorrect)
 
     // Auto-advance after 1.5s
     setTimeout(() => {
       setShowFeedback(false)
       setSelectedAnswer(null)
+      answerLockedRef.current = false
       if (currentIdx + 1 >= totalQuestions) {
         // Finished all questions — wait for timer to expire (don't end session for both players)
         setPlayerDone(true)
@@ -117,11 +130,11 @@ export function MusabaqahQuiz({ session, endsAt, onTimerEnd }: Props) {
         </span>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bar — starts at 1/30 on Q1, reaches 100% on Q30 (bug 012) */}
       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
         <div
           className="h-full bg-primary rounded-full transition-all duration-300"
-          style={{ width: `${((currentIdx) / totalQuestions) * 100}%` }}
+          style={{ width: `${((currentIdx + 1) / totalQuestions) * 100}%` }}
         />
       </div>
 

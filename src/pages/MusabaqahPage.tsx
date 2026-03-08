@@ -51,8 +51,8 @@ function LandingView({
   onSessionCreated,
   onSessionJoined,
 }: {
-  onSessionCreated: (id: SessionId, maxPlayers: 1 | 2 | 3 | 4) => void
-  onSessionJoined: (id: SessionId) => void
+  onSessionCreated: (id: SessionId, maxPlayers: 1 | 2 | 3 | 4, nickname: string) => void
+  onSessionJoined: (id: SessionId, nickname: string) => void
 }) {
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu')
   const [selectedCategory, setSelectedCategory] = useState<QuizCategory>('general')
@@ -83,7 +83,7 @@ function LandingView({
         setError(err?.message ?? 'Failed to create session')
         return
       }
-      onSessionCreated(data.id as SessionId, maxPlayers)
+      onSessionCreated(data.id as SessionId, maxPlayers, nickname.trim())
     } finally {
       setLoading(false)
     }
@@ -100,7 +100,7 @@ function LandingView({
         setError(err?.message ?? 'Failed to join session')
         return
       }
-      onSessionJoined(data.id as SessionId)
+      onSessionJoined(data.id as SessionId, nickname.trim())
     } finally {
       setLoading(false)
     }
@@ -298,6 +298,7 @@ export function MusabaqahPage() {
     endsAt,
     scores,
     isHost,
+    isStarting,
     handleSessionCreated,
     handleSessionJoined,
     handleStartQuiz,
@@ -332,6 +333,7 @@ export function MusabaqahPage() {
         session={session}
         members={members}
         isHost={isHost}
+        isStarting={isStarting}
         onStart={handleStartQuiz}
       />
     )

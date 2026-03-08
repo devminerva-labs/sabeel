@@ -15,10 +15,11 @@ interface Props {
   session: QuizSession
   members: QuizMember[]
   isHost: boolean
+  isStarting: boolean
   onStart: () => void
 }
 
-export function MusabaqahLobby({ session, members, isHost, onStart }: Props) {
+export function MusabaqahLobby({ session, members, isHost, isStarting, onStart }: Props) {
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
@@ -28,7 +29,7 @@ export function MusabaqahLobby({ session, members, isHost, onStart }: Props) {
   }
 
   // Allow start with 2+ players even if not all slots are filled
-  const canStart = isHost && members.length >= 2
+  const canStart = isHost && members.length >= 2 && !isStarting
 
   return (
     <div className="space-y-6">
@@ -87,7 +88,9 @@ export function MusabaqahLobby({ session, members, isHost, onStart }: Props) {
           disabled={!canStart}
           className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
         >
-          {canStart
+          {isStarting
+            ? 'Starting…'
+            : canStart
             ? 'Start Quiz'
             : `Waiting for players… (${members.length}/${session.max_players})`}
         </button>
