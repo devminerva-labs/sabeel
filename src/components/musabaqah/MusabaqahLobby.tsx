@@ -27,14 +27,15 @@ export function MusabaqahLobby({ session, members, isHost, onStart }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const canStart = isHost && members.length === 2
+  // Allow start with 2+ players even if not all slots are filled
+  const canStart = isHost && members.length >= 2
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-1">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">مُسَابَقَة</p>
-        <h1 className="text-2xl font-bold text-foreground">Waiting for opponent</h1>
+        <h1 className="text-2xl font-bold text-foreground">Waiting for players</h1>
         <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
           {CATEGORY_LABELS[session.category] ?? session.category}
         </span>
@@ -52,30 +53,31 @@ export function MusabaqahLobby({ session, members, isHost, onStart }: Props) {
         >
           {copied ? 'Copied!' : 'Copy Code'}
         </button>
-        <p className="text-xs text-muted-foreground">Share this code with your opponent</p>
+        <p className="text-xs text-muted-foreground">Share this code with your players</p>
       </div>
 
-      {/* Players */}
+      {/* Players — slot-based: filled slots + pulsing empty slots */}
       <div className="rounded-xl border border-border bg-background p-4 space-y-3">
-        <p className="text-xs text-muted-foreground uppercase tracking-wide">Players ({members.length}/2)</p>
-        {members.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Waiting for players to join...</p>
-        ) : (
-          <ul className="space-y-2">
-            {members.map((m) => (
-              <li key={m.userId} className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-sm font-medium text-foreground">{m.nickname}</span>
-              </li>
-            ))}
-            {members.length === 1 && (
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-muted animate-pulse" />
-                <span className="text-sm text-muted-foreground italic">Waiting for opponent...</span>
-              </li>
-            )}
-          </ul>
-        )}
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+          Players ({members.length}/{session.max_players})
+        </p>
+        <ul className="space-y-2">
+          {members.map((m) => (
+            <li key={m.userId} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-sm font-medium text-foreground">{m.nickname}</span>
+              {m.userId === session.host_id && (
+                <span className="text-xs text-muted-foreground">(host)</span>
+              )}
+            </li>
+          ))}
+          {Array.from({ length: session.max_players - members.length }).map((_, i) => (
+            <li key={`empty-${i}`} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-muted animate-pulse" />
+              <span className="text-sm text-muted-foreground italic">Waiting for player...</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Start button (host only) */}
@@ -85,7 +87,9 @@ export function MusabaqahLobby({ session, members, isHost, onStart }: Props) {
           disabled={!canStart}
           className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
         >
-          {canStart ? 'Start Quiz' : 'Waiting for opponent to join...'}
+          {canStart
+            ? 'Start Quiz'
+            : `Waiting for players… (${members.length}/${session.max_players})`}
         </button>
       )}
 

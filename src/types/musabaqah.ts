@@ -21,6 +21,7 @@ export interface QuizSession {
   status: 'lobby' | 'active' | 'finished'
   host_id: string
   question_ids: string[]
+  max_players: 1 | 2 | 3 | 4
 }
 
 export interface QuizMember {
@@ -35,7 +36,7 @@ export interface PlayerScore {
   isMe: boolean
 }
 
-export type QuizWinner = 'me' | 'opponent' | 'draw'
+export type QuizWinner = 'me' | 'other' | 'draw'
 
 // All broadcast events on channel `musabaqah:{sessionId}`
 export type QuizEvent =

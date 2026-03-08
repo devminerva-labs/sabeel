@@ -4,7 +4,7 @@ import { SessionId } from '@/types/musabaqah'
 import type { QuizCategory } from '@/types/musabaqah'
 
 // Create a new session (host calls this after picking category + selecting questions)
-export async function createSession(category: QuizCategory, questionIds: string[], nickname: string) {
+export async function createSession(category: QuizCategory, questionIds: string[], nickname: string, maxPlayers: 1 | 2 | 3 | 4 = 2) {
   if (!supabase) return { data: null, error: new Error('No connection') }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: new Error('Not authenticated') }
@@ -12,7 +12,7 @@ export async function createSession(category: QuizCategory, questionIds: string[
   // Insert session
   const { data: session, error: sessionError } = await supabase
     .from('quiz_sessions')
-    .insert({ category, question_ids: questionIds, host_id: user.id })
+    .insert({ category, question_ids: questionIds, host_id: user.id, max_players: maxPlayers })
     .select()
     .single()
   if (sessionError || !session) return { data: null, error: sessionError }
@@ -41,12 +41,13 @@ export async function joinByCode(code: string, nickname: string) {
     .single()
   if (lookupError || !session) return { data: null, error: new Error('Code not found or game already started') }
 
-  // Check member count (enforce 2-player cap)
+  // Check member count against session's max_players
   const { count } = await supabase
     .from('quiz_session_members')
     .select('*', { count: 'exact', head: true })
     .eq('session_id', session.id)
-  if ((count ?? 0) >= 2) return { data: null, error: new Error('This game already has 2 players') }
+  const cap = (session.max_players ?? 2) as number
+  if ((count ?? 0) >= cap) return { data: null, error: new Error(`This game is full (${cap} players max)`) }
 
   // Join
   const { error: joinError } = await supabase

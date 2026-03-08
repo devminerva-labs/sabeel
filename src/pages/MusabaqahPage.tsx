@@ -20,7 +20,7 @@ function NotLoggedIn() {
         <p className="text-xl text-muted-foreground">مُسَابَقَة</p>
         <h1 className="text-2xl font-bold">Musabaqah</h1>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-          Sign in to challenge a friend to an Islamic knowledge quiz.
+          Sign in to challenge friends to an Islamic knowledge quiz.
         </p>
       </div>
       <Link
@@ -51,11 +51,12 @@ function LandingView({
   onSessionCreated,
   onSessionJoined,
 }: {
-  onSessionCreated: (id: SessionId) => void
+  onSessionCreated: (id: SessionId, maxPlayers: 1 | 2 | 3 | 4) => void
   onSessionJoined: (id: SessionId) => void
 }) {
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu')
   const [selectedCategory, setSelectedCategory] = useState<QuizCategory>('general')
+  const [maxPlayers, setMaxPlayers] = useState<1 | 2 | 3 | 4>(2)
   const [nickname, setNickname] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -72,12 +73,17 @@ function LandingView({
         setError('No questions available for this category.')
         return
       }
-      const { data, error: err } = await createSession(selectedCategory, questions.map(q => q.id), nickname.trim())
+      const { data, error: err } = await createSession(
+        selectedCategory,
+        questions.map(q => q.id),
+        nickname.trim(),
+        maxPlayers,
+      )
       if (err || !data) {
         setError(err?.message ?? 'Failed to create session')
         return
       }
-      onSessionCreated(data.id as SessionId)
+      onSessionCreated(data.id as SessionId, maxPlayers)
     } finally {
       setLoading(false)
     }
@@ -125,6 +131,30 @@ function LandingView({
             />
           </div>
 
+          {/* Player count */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Players</label>
+            <div className="flex gap-2">
+              {([1, 2, 3, 4] as const).map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setMaxPlayers(n)}
+                  className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                    maxPlayers === n
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background text-muted-foreground hover:bg-muted/30'
+                  }`}
+                >
+                  {n === 1 ? 'Solo' : `${n}P`}
+                </button>
+              ))}
+            </div>
+            {maxPlayers === 1 && (
+              <p className="text-xs text-muted-foreground">You'll go straight to the quiz — no invite code needed.</p>
+            )}
+          </div>
+
           {/* Category */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Category</label>
@@ -154,7 +184,11 @@ function LandingView({
             disabled={loading || !nickname.trim()}
             className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
           >
-            {loading ? 'Creating...' : 'Create & Get Code'}
+            {loading
+              ? 'Creating...'
+              : maxPlayers === 1
+              ? 'Start Solo Quiz'
+              : 'Create & Get Code'}
           </button>
         </form>
         <p className="text-xs text-center text-muted-foreground">30 questions · 3 minute time limit</p>
@@ -219,7 +253,7 @@ function LandingView({
         <p className="text-muted-foreground">مُسَابَقَة</p>
         <h1 className="text-2xl font-bold text-foreground">Musabaqah</h1>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Challenge a friend to an Islamic knowledge quiz. Race through 30 questions in 3 minutes.
+          Challenge friends to an Islamic knowledge quiz. Race through 30 questions in 3 minutes.
         </p>
       </div>
 
@@ -241,8 +275,9 @@ function LandingView({
       <div className="rounded-xl bg-muted/30 border border-border p-4 space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
         <ul className="space-y-1.5 text-sm text-muted-foreground">
-          <li>• Create a quiz and share the 6-letter code</li>
-          <li>• Both players race through 30 questions independently</li>
+          <li>• Play solo or create a quiz for up to 4 players</li>
+          <li>• Share the 6-letter code with your friends</li>
+          <li>• All players race through 30 questions independently</li>
           <li>• 3-minute time limit — speed and accuracy matter</li>
           <li>• Scores revealed when time is up</li>
         </ul>

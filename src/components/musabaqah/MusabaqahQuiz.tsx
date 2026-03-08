@@ -22,6 +22,7 @@ export function MusabaqahQuiz({ session, endsAt, onTimerEnd }: Props) {
   const [showFeedback, setShowFeedback] = useState(false)
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(() => Math.max(0, Math.round((endsAt - Date.now()) / 1000)))
+  const [playerDone, setPlayerDone] = useState(false)
   const timerEndedRef = useRef(false)
 
   // Build question list from session.question_ids (same order for both clients)
@@ -63,15 +64,31 @@ export function MusabaqahQuiz({ session, endsAt, onTimerEnd }: Props) {
       setShowFeedback(false)
       setSelectedAnswer(null)
       if (currentIdx + 1 >= totalQuestions) {
-        // Finished all questions before time runs out
-        if (!timerEndedRef.current) {
-          timerEndedRef.current = true
-          onTimerEnd()
-        }
+        // Finished all questions — wait for timer to expire (don't end session for both players)
+        setPlayerDone(true)
       } else {
         setCurrentIdx(i => i + 1)
       }
     }, 1500)
+  }
+
+  if (playerDone) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <p className="text-2xl">✅</p>
+        <p className="font-semibold text-foreground">You've finished!</p>
+        <p className="text-sm text-muted-foreground">
+          Score: {score}/{totalQuestions} — waiting for the timer to end…
+        </p>
+        <span
+          className={`text-sm font-mono font-semibold tabular-nums ${
+            timeLeft <= 30 ? 'text-red-500' : 'text-muted-foreground'
+          }`}
+        >
+          {formatTime(timeLeft)} remaining
+        </span>
+      </div>
+    )
   }
 
   if (!currentQuestion) {
