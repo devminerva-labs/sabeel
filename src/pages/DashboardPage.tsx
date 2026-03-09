@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useLastReadingBookmark } from '@/hooks/useLastReadingBookmark'
@@ -12,8 +11,6 @@ import { usePrayerLog } from '@/hooks/usePrayerLog'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useAuth } from '@/hooks/useAuth'
 import { calculateCatchUp } from '@/lib/catch-up'
-import { getLaylahPhase } from '@/lib/ramadan-dates'
-import { getPrayerTimes } from '@/lib/prayer-times'
 import { db } from '@/lib/db'
 import type { AdhkarCategory } from '@/types'
 
@@ -41,35 +38,6 @@ export function DashboardPage() {
   const { prayedCount } = usePrayerLog(user?.id)
   const { completedCount: adhkarDone, total: adhkarTotal } = useAdhkarTodayCount()
   const lastBookmark = useLastReadingBookmark()
-
-  // Apply Laylatul Qadr theme during last 10 nights.
-  // Also schedules a re-check at Maghrib time so the theme activates without a page reload.
-  const [laylahTick, setLaylahTick] = useState(0)
-  useEffect(() => {
-    if (!dayNumber) {
-      document.documentElement.classList.remove('laylah-mode')
-      return
-    }
-    let timer: ReturnType<typeof setTimeout> | null = null
-    try {
-      const maghrib = getPrayerTimes(new Date()).maghrib
-      const now = new Date()
-      const phase = getLaylahPhase(dayNumber, now, maghrib)
-      document.documentElement.classList.toggle('laylah-mode', phase === 'active')
-      // If Maghrib is in the future today, schedule a re-check just after it
-      if (phase !== 'active' && maghrib > now) {
-        const ms = maghrib.getTime() - now.getTime()
-        timer = setTimeout(() => setLaylahTick((t) => t + 1), ms + 500)
-      }
-    } catch {
-      const phase = getLaylahPhase(dayNumber)
-      document.documentElement.classList.toggle('laylah-mode', phase === 'active')
-    }
-    return () => {
-      document.documentElement.classList.remove('laylah-mode')
-      if (timer) clearTimeout(timer)
-    }
-  }, [dayNumber, laylahTick])
 
   return (
     <div className="space-y-6">

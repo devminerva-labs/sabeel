@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
+import { useRamadanContext } from '@/hooks/useRamadanContext'
+import { getLaylahPhase } from '@/lib/ramadan-dates'
+import { getPrayerTimes } from '@/lib/prayer-times'
 
 const navItems = [
   { to: '/app', label: 'Home', icon: '🏠' },
@@ -15,6 +19,35 @@ const navItems = [
 export function Layout() {
   const { isDark, setTheme } = useTheme()
   const { user } = useAuth()
+  const { dayNumber } = useRamadanContext()
+
+  // Manage laylah-mode class here so stars persist across all /app/* pages.
+  // Reschedules a re-check just after Maghrib so the theme activates without a reload.
+  const [laylahTick, setLaylahTick] = useState(0)
+  useEffect(() => {
+    if (!dayNumber) {
+      document.documentElement.classList.remove('laylah-mode')
+      return
+    }
+    let timer: ReturnType<typeof setTimeout> | null = null
+    try {
+      const maghrib = getPrayerTimes(new Date()).maghrib
+      const now = new Date()
+      const phase = getLaylahPhase(dayNumber, now, maghrib)
+      document.documentElement.classList.toggle('laylah-mode', phase === 'active')
+      if (phase !== 'active' && maghrib > now) {
+        const ms = maghrib.getTime() - now.getTime()
+        timer = setTimeout(() => setLaylahTick((t) => t + 1), ms + 500)
+      }
+    } catch {
+      const phase = getLaylahPhase(dayNumber)
+      document.documentElement.classList.toggle('laylah-mode', phase === 'active')
+    }
+    return () => {
+      document.documentElement.classList.remove('laylah-mode')
+      if (timer) clearTimeout(timer)
+    }
+  }, [dayNumber, laylahTick])
 
   function toggleTheme() {
     setTheme(isDark ? 'light' : 'dark')
